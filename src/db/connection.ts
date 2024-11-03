@@ -1,6 +1,6 @@
-import { Pool } from 'pg';
+import pg from 'pg';
 
-const pool = new Pool({
+const client = new pg.Client({
   user: 'serch_dev',
   host: 'db',
   database: 'glossa_dev',
@@ -9,7 +9,7 @@ const pool = new Pool({
 });
 
 // Log connection success
-pool
+client
   .connect()
   .then(() => {
     console.log('Connected to PostgreSQL database successfully!');
@@ -18,4 +18,4 @@ pool
     console.error('Connection to PostgreSQL database failed:', err);
   });
 
-export default pool; // Export the pool to use in other parts of your app
+export default client; // Export the pool to use in other parts of your app

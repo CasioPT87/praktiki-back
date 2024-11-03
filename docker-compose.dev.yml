@@ -28,7 +28,7 @@ services:
     ports:
       - '5422:5432'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - praktiki_db_pg:/var/lib/postgresql/data
 
   redis:
     container_name: redis_service
@@ -39,5 +39,5 @@ services:
       - redis_data:/data
 
 volumes:
-  postgres_data:
+  praktiki_db_pg:
   redis_data:
