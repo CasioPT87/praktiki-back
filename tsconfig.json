@@ -1,22 +1,22 @@
 {
   "compilerOptions": {
-    "target": "ESNext",                      // Use the latest version of ECMAScript
-    "module": "ESNext",                      // Use ESNext for module syntax
-    "rootDir": "./src",                     // The root directory of input files
-    "outDir": "./dist",                     // The directory for compiled output files
-    "strict": true,                          // Enable all strict type-checking options
-    "esModuleInterop": true,                 // Enables emit interoperability between CommonJS and ES Modules
-    "skipLibCheck": true,                    // Skip type checking of all declaration files (*.d.ts)
+    "target": "ESNext", // Use the latest version of ECMAScript
+    "module": "ESNext", // Use ESNext for module syntax
+    "rootDir": "./src", // The root directory of input files
+    "outDir": "./dist", // The directory for compiled output files
+    "strict": true, // Enable all strict type-checking options
+    "esModuleInterop": true, // Enables emit interoperability between CommonJS and ES Modules
+    "skipLibCheck": true, // Skip type checking of all declaration files (*.d.ts)
     "forceConsistentCasingInFileNames": true, // Disallow inconsistently-cased references to the same file
-    "noImplicitAny": true,                   // Raise error on expressions and declarations with an implied 'any' type
-    "moduleResolution": "node",               // Use Node.js-style module resolution
-    "resolveJsonModule": true,               // Include modules imported with .json extension
-    "isolatedModules": true                   // Ensure that each file can be safely transpiled independently
+    "noImplicitAny": true, // Raise error on expressions and declarations with an implied 'any' type
+    "moduleResolution": "node", // Use Node.js-style module resolution
+    "resolveJsonModule": true, // Include modules imported with .json extension
+    "isolatedModules": true // Ensure that each file can be safely transpiled independently
   },
   "include": [
-    "src/**/*"                                // Include all TypeScript files in the 'src' directory
+    "src/**/*" // Include all TypeScript files in the 'src' directory
   ],
   "exclude": [
-    "node_modules"                            // Exclude node_modules from compilation
+    "node_modules" // Exclude node_modules from compilation
   ]
 }
