@@ -5,9 +5,10 @@ services:
     container_name: glossa_server
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "3022:3022"
+    command: npm run dev
     environment:
       - DATABASE_URL=postgres://user:password@db:5422/mydatabase
       - REDIS_URL=redis://redis:6322
@@ -21,9 +22,9 @@ services:
     container_name: postgres_db
     image: postgres:latest
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: mydatabase
+      POSTGRES_USER: serch_dev
+      POSTGRES_PASSWORD: silvio_vive_dev
+      POSTGRES_DB: glossa_dev
     ports:
       - "5422:5432"
     volumes:
