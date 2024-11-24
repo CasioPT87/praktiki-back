@@ -1,5 +1,5 @@
 export const up = async (knex) => {
-  await knex.schema.createTable('user_session', (table) => {
+  await knex.schema.createTable('user_session_online', (table) => {
     table.increments('id').primary(); // 'id' is the primary key, auto-incrementing
     table.integer('user_id').unsigned().notNullable(); // 'user_id' column, foreign key to user table
     table.timestamp('start').defaultTo(knex.fn.now()).notNullable(); // 'start' timestamp, cannot be null
@@ -18,5 +18,5 @@ export const up = async (knex) => {
 };
 
 export const down = async (knex) => {
-  await knex.schema.dropTableIfExists('user_session');
+  await knex.schema.dropTableIfExists('user_session_online');
 };
