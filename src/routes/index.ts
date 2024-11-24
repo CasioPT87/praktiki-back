@@ -137,8 +137,6 @@ import {
 import {
   createEventComment,
   getAllEventComments,
-  getEventCommentById,
-  updateEventCommentById,
   deleteEventCommentById,
 } from '../services/eventComment';
 
@@ -274,8 +272,6 @@ router.delete('/user-rates/:id', deleteUserRate);
 // EventComment Routes
 router.post('/event-comments', createEventComment);
 router.get('/event-comments', getAllEventComments);
-router.get('/event-comments/:id', getEventCommentById);
-router.put('/event-comments/:id', updateEventCommentById);
 router.delete('/event-comments/:id', deleteEventCommentById);
 
 export default router;
