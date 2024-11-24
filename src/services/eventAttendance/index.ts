@@ -4,7 +4,7 @@ import pool from '../../db/connection';
 import { EventAttendance } from '../../types/entities';
 
 // 1. Add a user to an event (create attendance)
-export const addEventAttendance = async (
+export const createEventAttendance = async (
   req: Request,
   res: Response
 ): Promise<void> => {
@@ -32,7 +32,7 @@ export const addEventAttendance = async (
 };
 
 // 2. Get all attendees for a specific event
-export const getEventAttendees = async (
+export const getEventAttendanceById = async (
   req: Request,
   res: Response
 ): Promise<void> => {
@@ -86,7 +86,7 @@ export const getUserEventAttendances = async (
 };
 
 // 4. Remove a user's attendance from an event (soft delete)
-export const removeEventAttendance = async (
+export const deleteEventAttendanceById = async (
   req: Request,
   res: Response
 ): Promise<void> => {

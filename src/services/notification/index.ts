@@ -136,12 +136,10 @@ export const deleteNotificationById = async (
       return;
     }
     const deletedNotification: Notification = result.rows[0];
-    res
-      .status(200)
-      .json({
-        message: 'Notification deleted successfully',
-        deletedNotification,
-      });
+    res.status(200).json({
+      message: 'Notification deleted successfully',
+      deletedNotification,
+    });
   } catch (error: unknown) {
     if (error instanceof Error) {
       console.error('Error deleting notification:', error.message);

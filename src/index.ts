@@ -1,8 +1,11 @@
 import express, { Request, Response } from 'express';
 import dbClient from './db/connection';
+import routes from './routes';
 
 const app = express();
 const port = 3022;
+
+app.use('*', routes);
 
 // Define a simple route
 app.get('/', (req: Request, res: Response) => {

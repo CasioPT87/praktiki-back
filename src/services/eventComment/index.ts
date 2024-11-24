@@ -80,12 +80,10 @@ export const deleteEventComment = async (
       return;
     }
     const deletedEventComment: EventComment = result.rows[0];
-    res
-      .status(200)
-      .json({
-        message: 'Event comment deleted successfully',
-        deletedEventComment,
-      });
+    res.status(200).json({
+      message: 'Event comment deleted successfully',
+      deletedEventComment,
+    });
   } catch (error: unknown) {
     if (error instanceof Error) {
       console.error('Error deleting event comment:', error.message);

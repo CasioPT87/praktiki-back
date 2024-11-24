@@ -32,7 +32,7 @@ export const createLocationChat = async (
 };
 
 // 2. Get all location chats
-export const getLocationChats = async (
+export const getAllLocationChats = async (
   req: Request,
   res: Response
 ): Promise<void> => {
@@ -138,12 +138,10 @@ export const deleteLocationChatById = async (
       return;
     }
     const deletedLocationChat: LocationChat = result.rows[0];
-    res
-      .status(200)
-      .json({
-        message: 'Location chat deleted successfully',
-        deletedLocationChat,
-      });
+    res.status(200).json({
+      message: 'Location chat deleted successfully',
+      deletedLocationChat,
+    });
   } catch (error: unknown) {
     if (error instanceof Error) {
       console.error('Error deleting location chat:', error.message);

@@ -136,12 +136,10 @@ export const deletePrivateChatById = async (
       return;
     }
     const deletedPrivateChat: PrivateChat = result.rows[0];
-    res
-      .status(200)
-      .json({
-        message: 'Private chat deleted successfully',
-        deletedPrivateChat,
-      });
+    res.status(200).json({
+      message: 'Private chat deleted successfully',
+      deletedPrivateChat,
+    });
   } catch (error: unknown) {
     if (error instanceof Error) {
       console.error('Error deleting private chat:', error.message);
