@@ -1,8 +1,6 @@
 import express, { Request, Response } from 'express';
 import dbClient from './db/connection';
 
-console.log(!!dbClient);
-
 const app = express();
 const port = 3022;
 
