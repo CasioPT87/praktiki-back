@@ -32,7 +32,7 @@ export const createLocationChatMessage = async (
 };
 
 // 2. Get all location chat messages for a specific location chat
-export const getLocationChatMessages = async (
+export const getLocationChatMessagesByLocationChat = async (
   req: Request,
   res: Response
 ): Promise<void> => {

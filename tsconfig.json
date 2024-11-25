@@ -11,7 +11,7 @@
     "noImplicitAny": true, // Raise error on expressions and declarations with an implied 'any' type
     "moduleResolution": "node", // Use Node.js-style module resolution
     "resolveJsonModule": true, // Include modules imported with .json extension
-    "isolatedModules": true // Ensure that each file can be safely transpiled independently
+    "isolatedModules": false // Ensure that each file can be safely transpiled independently
   },
   "include": [
     "src/**/*" // Include all TypeScript files in the 'src' directory

@@ -32,11 +32,10 @@ services:
 
   redis:
     container_name: redis_service
-    image: redis:latest
+    command: redis-server --loglevel warning --requirepass PrakTiki34!
+    image: redis:6.2-alpine
     ports:
-      - '6322:6379'
-    volumes:
-      - redis_data:/data
+      - '6379:6379'
 
 volumes:
   praktiki_db_pg:

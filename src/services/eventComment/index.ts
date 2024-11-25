@@ -32,7 +32,7 @@ export const createEventComment = async (
 };
 
 // 2. Get all comments for an event
-export const getEventComments = async (
+export const getAllEventComments = async (
   req: Request,
   res: Response
 ): Promise<void> => {
@@ -60,7 +60,7 @@ export const getEventComments = async (
 };
 
 // 3. Soft delete an event comment (mark as deleted)
-export const deleteEventComment = async (
+export const deleteEventCommentById = async (
   req: Request,
   res: Response
 ): Promise<void> => {
