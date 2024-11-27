@@ -1,14 +1,17 @@
 import express, { Request, Response } from 'express';
 import dbClient from './db/connection';
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const cookieParser = require('cookie-parser');
-const helmet = require('helmet');
-const compression = require('compression');
-const swaggerJsdoc = require('swagger-jsdoc');
-const swaggerUi = require('swagger-ui-express');
-const jwt = require('jsonwebtoken');
+import bodyParser from 'body-parser';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
+import compression from 'compression';
+import swaggerJsdoc from 'swagger-jsdoc';
+import swaggerUi from 'swagger-ui-express';
+import jwt from 'jsonwebtoken';
+import { Server as io } from 'socket.io';
+import messages from './messages';
+
 import routes from './routes';
 
 // Initialize environment variables
@@ -48,6 +51,18 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 // Start the server
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
+
+const websockets = new io(server, {
+  cors: {
+    origin: ['http://localhost:8080', 'http://localhost:9990'],
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+  pingTimeout: 20000,
+  pingInterval: 30000,
+});
+
+messages(websockets);
