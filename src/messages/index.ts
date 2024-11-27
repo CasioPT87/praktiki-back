@@ -42,19 +42,22 @@ export default async function messages(io: Server) {
     }
   });
 
-  io.on('connect', async (socket) => {
+  io.on('connection', async (socket) => {
     console.log('hola');
-    const _socket = socket as SocketIO;
-    const userId = _socket?.user?.userId;
-    if (!userId) return;
+    socket.on('chat message', (msg) => {
+      console.log('message: ' + msg);
+    });
+    // const _socket = socket as SocketIO;
+    // const userId = _socket?.user?.userId;
+    // if (!userId) return;
 
-    //anadimos al usuario a una room para el solo
-    socket.join(userId.toString());
+    // //anadimos al usuario a una room para el solo
+    // socket.join(userId.toString());
 
-    // const user = await usersService.obtenerUsuarioId(userId);
+    // // const user = await usersService.obtenerUsuarioId(userId);
 
-    // todos los usuarios van a la room "sala-todos"
-    socket.join('sala-todos');
+    // // todos los usuarios van a la room "sala-todos"
+    // socket.join('sala-todos');
   });
 
   global.messages = messages;
