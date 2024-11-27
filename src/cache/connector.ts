@@ -1,5 +1,7 @@
 import { createClient, RedisClientType } from 'redis';
 
+console.log('hey');
+
 type Connection = RedisClientType | void;
 type ConnectionService = Promise<Connection> | void;
 
@@ -8,7 +10,7 @@ function connection(this: RedisService): ConnectionService {
   if (process.env.NODE_ENV === 'test') return;
 
   return createClient({
-    url: 'redis://default:PrakTiki34@cache:6379',
+    url: 'redis://default:PrakTiki34@cache:6369',
   })
     .connect()
     .then((client) => {

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { pool } from '../db';
-import { Country } from '../types';
+import pool from '../../db/connection';
+import { Country } from '../../types/entities';
 
 // 1. Create a new country
 export const createCountry = async (
