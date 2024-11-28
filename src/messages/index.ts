@@ -46,7 +46,10 @@ export default async function messages(io: Server) {
     console.log('hola');
     socket.on('chat message', (msg) => {
       console.log('message: ' + msg);
+      // le mandamos el mensaje a todos los que esten en este canal, incluido el que lo ha enviado
+      io.emit('chat message', msg);
     });
+
     // const _socket = socket as SocketIO;
     // const userId = _socket?.user?.userId;
     // if (!userId) return;
@@ -59,6 +62,4 @@ export default async function messages(io: Server) {
     // // todos los usuarios van a la room "sala-todos"
     // socket.join('sala-todos');
   });
-
-  global.messages = messages;
 }
