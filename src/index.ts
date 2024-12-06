@@ -1,3 +1,5 @@
+import https from 'node:https';
+import fs from 'node:fs';
 import express, { Request, Response } from 'express';
 import dbClient from './db/connection';
 import bodyParser from 'body-parser';
@@ -51,13 +53,26 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 // Start the server
-const server = app.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
+
+const key = fs.readFileSync('cert.key');
+const cert = fs.readFileSync('cert.crt');
+const server = https.createServer({ key, cert }, app);
+
+server.listen(port);
+
+server.on('listening', () => {
+  console.log(
+    `Server is running and listening at http://localhost:${port} on ${process.env.NODE_ENV}`
+  );
 });
 
 const websockets = new io(server, {
   cors: {
-    origin: ['http://localhost:8080', 'http://localhost:9990'],
+    origin: [
+      'https://localhost',
+      'http://localhost:8080',
+      'http://localhost:9990',
+    ],
     methods: ['GET', 'POST'],
     credentials: true,
   },

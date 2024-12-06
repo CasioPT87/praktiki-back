@@ -8,6 +8,7 @@ services:
       dockerfile: Dockerfile.dev
     ports:
       - '3022:3022'
+      - '9229:9229'
     command: npm run dev
     environment:
       - DATABASE_URL=postgres://user:password@db:5422/mydatabase
@@ -16,7 +17,7 @@ services:
       - db
       - redis
     volumes:
-      - ./src:/app/src
+      - .:/app
 
   db:
     container_name: postgres_db
