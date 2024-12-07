@@ -24,6 +24,7 @@ const port = 3022;
 
 // Setup Middleware
 app.use(cors()); // Enable Cross-Origin Resource Sharing
+
 app.use(helmet()); // Set security headers
 app.use(compression()); // Enable response compression
 app.use(cookieParser()); // Parse cookies
@@ -62,17 +63,21 @@ server.listen(port);
 
 server.on('listening', () => {
   console.log(
-    `Server is running and listening at http://localhost:${port} on ${process.env.NODE_ENV}`
+    `Server is running and listening at ${port} on ${process.env.NODE_ENV}`
   );
 });
 
+console.log(process.env.NETWORK);
+
 const websockets = new io(server, {
   cors: {
-    origin: [
-      'https://localhost',
-      'http://localhost:8080',
-      'http://localhost:9990',
-    ],
+    origin: '*',
+    // [
+    //   'https://localhost',
+    //   process.env.NETWORK || '',
+    //   'http://localhost:8080',
+    //   'http://localhost:9990',
+    // ],
     methods: ['GET', 'POST'],
     credentials: true,
   },
