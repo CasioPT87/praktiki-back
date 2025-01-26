@@ -2,11 +2,6 @@ import { PlainObject } from '../types/entities/versatile';
 
 import redisService from './connector';
 
-const getKey = (key: string) => {
-  const prefix = `${process.env.PORTAL_NAME}:` || '';
-  return prefix + key;
-};
-
 class Cache {
   cache: any;
 
@@ -39,12 +34,24 @@ class Cache {
       return value;
     }
 
-    await this.cache.set(getKey(key), JSON.stringify(value), {
+    await this.cache.set(key, JSON.stringify(value), {
       EX: cache_ttl,
       NX: true,
     });
 
     return value;
+  }
+
+  async get(key: string) {
+    if (!this.cache || !redisService.isReady) {
+      return null;
+    }
+    const value = await this.cache.get(key);
+    if (value) {
+      return JSON.parse(value);
+    }
+
+    return null;
   }
 
   /* Gets the value from cache and save if doesn't exists */
@@ -53,15 +60,14 @@ class Cache {
       return await storeFunction();
     }
 
-    const value = await this.cache.get(getKey(key));
+    const value = await this.cache.get(key);
     if (value) {
-      console.log(`######## get from cache ${getKey(key)} #########`);
       return JSON.parse(value);
     }
 
     const result = await storeFunction();
     if (result)
-      await this.cache.set(getKey(key), JSON.stringify(result), {
+      await this.cache.set(key, JSON.stringify(result), {
         EX: cache_ttl,
         NX: true,
       });
@@ -69,7 +75,7 @@ class Cache {
   }
 
   async del(key: string) {
-    await this.cache.del(getKey(key));
+    await this.cache.del(key);
   }
 
   async allKeys() {
@@ -88,17 +94,13 @@ class Cache {
 
   async deleteKey(key = '') {
     if (!this.cache) {
-      console.error(
-        'Intento de eliminar una clave cuando la caché no está conectada.'
-      );
       return { deleted: false };
     }
 
     try {
-      const deleted = await this.cache.del(getKey(key));
+      const deleted = await this.cache.del(key);
       return { deleted: !!deleted };
     } catch (error) {
-      console.error(`Error al eliminar la clave de caché: ${key}`, error);
       return { deleted: false };
     }
   }

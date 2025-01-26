@@ -3,6 +3,15 @@ import { createClient } from 'redis';
 import { Server, Socket } from 'socket.io';
 import cache from '../cache/index';
 
+const setSocket = async ({ socketId, userName }) => {
+  await cache.set(socketId, 10_000, { name: userName });
+};
+
+const getSocket = async ({ socketId }) => {
+  const value = await cache.get(socketId);
+  return value;
+};
+
 interface SocketIO extends Socket {
   user: any;
 }
@@ -65,12 +74,12 @@ export default async function messages(io: Server) {
     const userName = socket.handshake.auth.userName;
     const password = socket.handshake.auth.password;
 
-    cache.set('');
-
     connectedSockets.push({
       socketId: socket.id,
       userName,
     });
+
+    //setSocket({ socketId: socket.id, userName })
 
     //a new client has joined. If there are any offers available,
     //emit them out
@@ -80,18 +89,19 @@ export default async function messages(io: Server) {
 
     // esto pasa cuando un usuario pulsa en "call"
     socket.on('newOffer', (newOffer) => {
-      console.log('new offer!!!');
-      offers.push({
+      console.log('new offer!!!', newOffer);
+      const offer = {
         offererUserName: userName,
         offer: newOffer,
         offerIceCandidates: [],
         answererUserName: null,
         answer: null,
         answererIceCandidates: [],
-      });
+      };
+      offers.push(offer);
 
       //send out to all connected sockets EXCEPT the caller
-      socket.broadcast.emit('newOfferAwaiting', offers.slice(-1));
+      socket.broadcast.emit('newOfferAwaiting', offer);
     });
 
     // esto pasa cuando un usuario responde una oferta
