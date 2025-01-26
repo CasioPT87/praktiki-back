@@ -1,4 +1,5 @@
 import https from 'node:https';
+import http from 'node:http';
 import fs from 'node:fs';
 import express, { Request, Response } from 'express';
 import dbClient from './db/connection';
@@ -23,7 +24,11 @@ const app = express();
 const port = 3022;
 
 // Setup Middleware
-app.use(cors()); // Enable Cross-Origin Resource Sharing
+app.use(
+  cors({
+    credentials: true,
+  })
+); // Enable Cross-Origin Resource Sharing
 
 app.use(helmet()); // Set security headers
 app.use(compression()); // Enable response compression
@@ -48,16 +53,11 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use('*', routes);
 
-// Define a simple route
-app.get('/', (req: Request, res: Response) => {
-  res.send('Hello, TypeScript + Express!!!!');
-});
-
 // Start the server
-
 const key = fs.readFileSync('cert.key');
 const cert = fs.readFileSync('cert.crt');
 const server = https.createServer({ key, cert }, app);
+//const server = http.createServer(app);
 
 server.listen(port);
 

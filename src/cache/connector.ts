@@ -1,7 +1,5 @@
 import { createClient, RedisClientType } from 'redis';
 
-console.log('hey');
-
 type Connection = RedisClientType | void;
 type ConnectionService = Promise<Connection> | void;
 

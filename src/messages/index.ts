@@ -1,6 +1,7 @@
 import { createAdapter } from '@socket.io/redis-adapter';
 import { createClient } from 'redis';
 import { Server, Socket } from 'socket.io';
+import cache from '../cache/index';
 
 interface SocketIO extends Socket {
   user: any;
@@ -64,6 +65,8 @@ export default async function messages(io: Server) {
     const userName = socket.handshake.auth.userName;
     const password = socket.handshake.auth.password;
 
+    cache.set('');
+
     connectedSockets.push({
       socketId: socket.id,
       userName,
@@ -75,7 +78,9 @@ export default async function messages(io: Server) {
       socket.emit('availableOffers', offers);
     }
 
+    // esto pasa cuando un usuario pulsa en "call"
     socket.on('newOffer', (newOffer) => {
+      console.log('new offer!!!');
       offers.push({
         offererUserName: userName,
         offer: newOffer,
@@ -84,15 +89,14 @@ export default async function messages(io: Server) {
         answer: null,
         answererIceCandidates: [],
       });
-      // console.log(newOffer.sdp.slice(50))
+
       //send out to all connected sockets EXCEPT the caller
       socket.broadcast.emit('newOfferAwaiting', offers.slice(-1));
     });
 
+    // esto pasa cuando un usuario responde una oferta
     socket.on('newAnswer', (offerObj, ackFunction) => {
-      console.log(offerObj);
-      //emit this answer (offerObj) back to CLIENT1
-      //in order to do that, we need CLIENT1's socketid
+      // encontramos el socket del usuario que hizo la oferta
       const socketToAnswer = connectedSockets.find(
         (s) => s.userName === offerObj.offererUserName
       );
