@@ -9,6 +9,7 @@ export type Role = {
 
 export type User = {
   id: number; // Primary key, auto-incrementing
+  name: string;
   role_id: number; // Foreign key referencing 'role.id'
   created_at: Date; // Timestamp for creation
   updated_at: Date; // Timestamp for last update
@@ -172,6 +173,15 @@ export type EventComment = {
   location_chat_id: number;
   text: string;
   user_id: number;
+  created_at: Date;
+  updated_at: Date;
+  deleted_at: Date | null;
+};
+
+export type UserAuth = {
+  id: number;
+  user_id: number;
+  password: string;
   created_at: Date;
   updated_at: Date;
   deleted_at: Date | null;

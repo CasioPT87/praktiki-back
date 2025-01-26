@@ -1,6 +1,9 @@
 // src/routes/index.ts
 import { Router } from 'express';
 
+// Initialize the router
+const router = Router();
+
 // Import all controllers for different entities
 import {
   createRole,
@@ -16,6 +19,8 @@ import {
   getUserById,
   updateUserById,
   deleteUserById,
+  registerUser,
+  loginUser,
 } from '../services/user';
 
 import {
@@ -140,9 +145,6 @@ import {
   deleteEventCommentById,
 } from '../services/eventComment';
 
-// Initialize the router
-const router = Router();
-
 // Define routes for each entity
 // Role Routes
 router.post('/roles', createRole);
@@ -157,6 +159,14 @@ router.get('/users', getAllUsers);
 router.get('/users/:id', getUserById);
 router.put('/users/:id', updateUserById);
 router.delete('/users/:id', deleteUserById);
+router.post('/users/register', registerUser);
+router.post(
+  '/users/login',
+  (req, res, next) => {
+    next();
+  },
+  loginUser
+);
 
 // Icon Routes
 router.post('/icons', createIcon);

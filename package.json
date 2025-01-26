@@ -15,6 +15,7 @@
   "license": "ISC",
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",
+    "bcrypt": "^5.1.1",
     "body-parser": "^1.20.3",
     "compression": "^1.7.5",
     "cookie-parser": "^1.4.7",
@@ -33,6 +34,7 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
     "@types/compression": "^1.7.5",
     "@types/cookie-parser": "^1.4.7",
     "@types/express": "^5.0.0",
