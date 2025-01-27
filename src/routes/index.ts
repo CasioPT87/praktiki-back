@@ -160,13 +160,7 @@ router.get('/users/:id', getUserById);
 router.put('/users/:id', updateUserById);
 router.delete('/users/:id', deleteUserById);
 router.post('/users/register', registerUser);
-router.post(
-  '/users/login',
-  (req, res, next) => {
-    next();
-  },
-  loginUser
-);
+router.post('/users/login', loginUser);
 
 // Icon Routes
 router.post('/icons', createIcon);

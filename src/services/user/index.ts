@@ -3,7 +3,6 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import pool from '../../db/connection';
 import { User, UserAuth } from '../../types/entities';
-import jwt from 'jsonwebtoken';
 import { createToken } from '../../utils/auth';
 
 // 1. Create a new user
@@ -154,6 +153,41 @@ export const registerUser = async (
   req: Request,
   res: Response
 ): Promise<void> => {
+  const client = await pool.connect();
+
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      res.status(400).send('Username and password are required');
+      return;
+    }
+    await client.query('BEGIN');
+
+    // Find the user by username
+    const queryUser = `INSERT INTO "user"(name) VALUES($1) RETURNING *`;
+
+    const newUserResult = await pool.query(queryUser, [username]);
+    const queryAuth = `INSERT INTO user_auth (user_id, password) VALUES ($1, $2)`;
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = newUserResult.rows[0] as User;
+    await pool.query(queryAuth, [user.id, hashedPassword]);
+    await client.query('COMMIT');
+
+    const token = await createToken({ user });
+
+    res.status(200).json({ token });
+    return;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).send('Error logging in');
+  } finally {
+    client.release();
+  }
+};
+
+export const loginUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, password } = req.body;
 
@@ -163,64 +197,35 @@ export const registerUser = async (
     }
 
     // Find the user by username
-    const queryUser = `
-  INSERT INTO user (name) VALUES ($1) RETURNING *
-  `;
+    const query = `
+    SELECT "user".*, user_auth.password FROM "user"
+    INNER JOIN user_auth ON "user"."id" = user_auth.user_id
+    WHERE "user"."name" = $1
+    `;
 
-    const text = 'INSERT INTO user(name) VALUES($1) RETURNING *';
-    const values = ['brianc'];
+    const userResult = await pool.query(query, [username]);
 
-    const userId = await pool.query(text, values);
+    const user = userResult.rows[0] as User & UserAuth;
 
-    const queryAuth = `
-  INSERT INTO user_auth (user_id, password) VALUES (?, ?)
-  `;
+    if (!user) {
+      res.status(404).send('User not found');
+      return;
+    }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    await pool.query(queryAuth, [userId, hashedPassword]);
-
-    const user = await pool.query('SELECT * FROM user WHERE id = ?', [userId]);
-
-    const token = await createToken({ user });
-
-    res.status(200).json({ token });
-    return;
-  } catch (err) {
-    res.status(500).send('Error logging in');
-  }
-};
-
-export const loginUser = async (req: Request, res: Response): Promise<void> => {
-  const { username, password } = req.params;
-
-  if (!username || !password) {
-    res.status(400).send('Username and password are required');
-    return;
-  }
-
-  // Find the user by username
-  const query = `
-  SELECT * FROM user
-  INNER JOIN user_auth ON user.id = user_auth.user_id
-  WHERE user.id = $1
-  `;
-
-  const userResult = await pool.query(query, [username]);
-
-  const user = userResult as User & UserAuth;
-
-  if (!user) {
-    res.status(404).send('User not found');
-    return;
-  }
-
-  try {
-    // Compare the provided password with the hashed password
     const match = await bcrypt.compare(password, user.password);
 
     if (match) {
-      res.status(200).json({ user });
+      const tokenUser: User = {
+        id: user.id,
+        name: user.name,
+        role_id: user.role_id,
+        created_at: user.created_at,
+        deleted_at: user.deleted_at,
+        updated_at: user.updated_at,
+      };
+
+      const token = await createToken({ user: tokenUser });
+      res.status(200).json({ token });
     } else {
       res.status(401).send('Invalid password');
     }
