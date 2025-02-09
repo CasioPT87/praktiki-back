@@ -17,6 +17,7 @@ import {
   createUser,
   getAllUsers,
   getUserById,
+  getUserProfile,
   updateUserById,
   deleteUserById,
   registerUser,
@@ -156,6 +157,7 @@ router.delete('/roles/:id', deleteRoleById);
 // User Routes
 router.post('/users', createUser);
 router.get('/users', getAllUsers);
+router.get('/users/profile', getUserProfile);
 router.get('/users/:id', getUserById);
 router.put('/users/:id', updateUserById);
 router.delete('/users/:id', deleteUserById);

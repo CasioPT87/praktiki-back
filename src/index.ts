@@ -11,7 +11,6 @@ import helmet from 'helmet';
 import compression from 'compression';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
-import jwt from 'jsonwebtoken';
 import { Server as io } from 'socket.io';
 import { authorization } from './utils/auth';
 import messages from './messages';

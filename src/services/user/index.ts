@@ -83,6 +83,36 @@ export const getUserById = async (
   }
 };
 
+export const getUserProfile = async (
+  req: Request & { user: User },
+  res: Response
+): Promise<void> => {
+  try {
+    let user: User = req.user;
+
+    if (!user?.id) throw new Error('no user auth');
+
+    const id = user.id;
+
+    const query = 'SELECT * FROM "user" WHERE id = $1 AND deleted_at IS NULL;';
+    const result = await pool.query(query, [id]);
+    if (result.rows.length === 0) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+    const refreshedUser: User = result.rows[0];
+    res.status(200).json(refreshedUser);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error fetching user:', error.message);
+      res.status(500).json({ message: error.message });
+    } else {
+      console.error('An unknown error occurred:', error);
+      res.status(500).json({ message: 'An unknown error occurred' });
+    }
+  }
+};
+
 // 4. Update a user by ID
 export const updateUserById = async (
   req: Request,
