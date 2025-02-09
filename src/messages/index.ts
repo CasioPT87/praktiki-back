@@ -2,6 +2,7 @@ import { createAdapter } from '@socket.io/redis-adapter';
 import { createClient } from 'redis';
 import { Server, Socket } from 'socket.io';
 import cache from '../cache/index';
+import jwt from 'jsonwebtoken';
 
 const setSocket = async ({ socketId, userName }) => {
   await cache.set(socketId, 10_000, { name: userName });
@@ -52,19 +53,21 @@ export default async function messages(io: Server) {
     io.adapter(createAdapter(redisClientPub, redisClientSub));
   }
 
-  io.use(async function (socket: Socket, next) {
-    if (socket.handshake.auth) {
-      // const tokenInfo = tokenService.decodeToken(socket.handshake.auth.token);
-      // if (!tokenInfo) return next(new Error('Authentication error'));
-      // socket = Object.assign(socket, { user: tokenInfo }) as SocketIO;
-
-      next();
-    } else {
-      next(new Error('Authentication error'));
-    }
-  });
-
   io.on('connection', async (socket) => {
+    let token;
+    // for development
+    if (socket.handshake.auth.token) {
+      token = socket.handshake.auth.token;
+      // for production
+    } else {
+      const prodAuthHeader = socket.handshake.headers.cookie;
+      token = prodAuthHeader?.split(' ')[1];
+    }
+
+    const user = jwt.decode(token);
+
+    if (!user) return;
+
     socket.on('chat message', (msg) => {
       console.log('message: ' + msg);
       // le mandamos el mensaje a todos los que esten en este canal, incluido el que lo ha enviado

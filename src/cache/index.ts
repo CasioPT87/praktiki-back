@@ -106,4 +106,4 @@ class Cache {
   }
 }
 
-module.exports = new Cache();
+export default new Cache();
