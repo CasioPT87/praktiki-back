@@ -13,6 +13,7 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import jwt from 'jsonwebtoken';
 import { Server as io } from 'socket.io';
+import { authorization } from './utils/auth';
 import messages from './messages';
 
 import routes from './routes';
@@ -52,6 +53,8 @@ const swaggerOptions = {
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+app.use(authorization);
+
 app.use('/', routes);
 
 // Start the server
@@ -67,8 +70,6 @@ server.on('listening', () => {
     `Server is running and listening at ${port} on ${process.env.NODE_ENV}`
   );
 });
-
-console.log(process.env.NETWORK);
 
 const websockets = new io(server, {
   cors: {
