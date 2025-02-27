@@ -56,30 +56,18 @@ export const getAllLocationChats = async (
 
 // 3. Get a location chat by ID
 export const getLocationChatById = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  const { id } = req.params;
-
+  roomId: string
+): Promise<LocationChat | null> => {
   const query =
     'SELECT * FROM location_chats WHERE id = $1 AND deleted_at IS NULL;';
 
   try {
-    const result = await pool.query(query, [id]);
-    if (result.rows.length === 0) {
-      res.status(404).json({ message: 'Location chat not found' });
-      return;
-    }
+    const result = await pool.query(query, [roomId]);
     const locationChat: LocationChat = result.rows[0];
-    res.status(200).json(locationChat);
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error('Error fetching location chat:', error.message);
-      res.status(500).json({ message: error.message });
-    } else {
-      console.error('An unknown error occurred:', error);
-      res.status(500).json({ message: 'An unknown error occurred' });
-    }
+    return locationChat;
+  } catch (error) {
+    console.error(error);
+    return null;
   }
 };
 

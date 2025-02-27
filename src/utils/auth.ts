@@ -1,10 +1,15 @@
 import jwt from 'jsonwebtoken';
 import { User } from '../types/entities';
+import { NextFunction, Request, Response } from 'express';
+import { AuthorisedRequest } from '../types/utilities';
 
-export const authorization = async (req, res, next) => {
+export const authorization = async (
+  req: AuthorisedRequest,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     let token = null;
-    let user = null;
     const cookieAuth = req.cookies?.[process.env.APP_NAME || ''];
     const headerAuth = req.headers?.authorization;
     if (cookieAuth) {
@@ -14,12 +19,15 @@ export const authorization = async (req, res, next) => {
     }
 
     if (token) {
-      user = jwt.decode(token);
-      req.user = user;
+      const user = jwt.decode(token) as User;
+      req = {
+        ...req,
+        user,
+      } as AuthorisedRequest;
     }
     next();
   } catch (e) {
-    req.status(403).send('token is not valid');
+    res.status(403).send('token is not valid');
   }
 };
 

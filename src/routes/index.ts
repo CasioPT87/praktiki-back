@@ -1,5 +1,5 @@
 // src/routes/index.ts
-import { Router } from 'express';
+import { Response, Router } from 'express';
 
 // Initialize the router
 const router = Router();
@@ -145,6 +145,8 @@ import {
   getAllEventComments,
   deleteEventCommentById,
 } from '../services/eventComment';
+import { joinLocationRoom, leaveLocationRoom } from '../controllers/room';
+import { AuthorisedRequest } from '../types/utilities';
 
 // Define routes for each entity
 // Role Routes
@@ -279,5 +281,11 @@ router.delete('/user-rates/:id', deleteUserRate);
 router.post('/event-comments', createEventComment);
 router.get('/event-comments', getAllEventComments);
 router.delete('/event-comments/:id', deleteEventCommentById);
+
+//Room routers
+router.get('/room/join/:id_room', joinLocationRoom);
+// router.get('/room/leave/:id_room', (req: AuthorisedRequest, res: Response) =>
+//   leaveLocationRoom(req, res)
+// );
 
 export default router;

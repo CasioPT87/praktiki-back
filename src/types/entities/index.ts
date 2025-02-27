@@ -119,6 +119,7 @@ export type PrivateChatMessage = {
 
 export type LocationChat = {
   id: number;
+  name: string;
   location_id: number;
   languages_id: number;
   created_at: Date;
