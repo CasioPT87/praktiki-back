@@ -7,9 +7,9 @@ export const up = async (knex) => {
     table.foreign('location_id').references('id').inTable('location');
 
     // Foreign key for 'languages_id', referencing the 'id' in the 'language_combination' table
-    table.integer('languages_id').unsigned().notNullable();
+    table.integer('language_combination_id').unsigned().notNullable();
     table
-      .foreign('languages_id')
+      .foreign('language_combination_id')
       .references('id')
       .inTable('language_combination');
 
