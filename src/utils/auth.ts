@@ -4,7 +4,7 @@ import { NextFunction, Request, Response } from 'express';
 import { AuthorisedRequest } from '../types/utilities';
 
 export const authorization = async (
-  req: AuthorisedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {

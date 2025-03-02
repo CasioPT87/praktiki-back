@@ -1,5 +1,6 @@
-import { Server, Socket } from 'socket.io';
-import { websockets as io } from '../../../index';
+import { Server } from 'socket.io';
+import { NotificationMessage } from '../../../types/utilities';
+import { Channel, SocketManager } from '../../../utilities';
 
 const NUM_MAX_ROOMS = 1;
 const MAX_NUM_USERS_PER_ROOM = 30;
@@ -22,9 +23,29 @@ class UsersManager {
 export class UserManager {
   userId: string;
   roomManager: UserRoomManager;
-  constructor(userId: string, socketId: string) {
+
+  constructor(userId: string, socketId: string, io: Server) {
     this.userId = userId;
-    this.roomManager = new UserRoomManager(socketId);
+    this.roomManager = new UserRoomManager(socketId, io);
+    this.joinSelfRoom(userId);
+  }
+
+  private joinSelfRoom(userId: string) {
+    this.roomManager.addRoom(userId);
+  }
+
+  sendNotificationMessage(message: NotificationMessage) {
+    this.roomManager.sendMessageToRoom(
+      this.userId,
+      Channel.notifications,
+      message
+    );
+  }
+
+  sendNotificationMessages(messages: NotificationMessage[]) {
+    messages.forEach((message) => {
+      this.sendNotificationMessage(message);
+    });
   }
 
   async joinLocationRoom(roomName: string) {
@@ -44,24 +65,9 @@ export class UserManager {
   }
 }
 
-class UserSocketManager {
-  socket: Socket | null = null;
-  constructor(socketId: string) {
-    this.socket = io.sockets.sockets.get(socketId) || null;
-  }
-
-  addRoom(roomName: string) {
-    this.socket?.join(roomName);
-  }
-
-  leaveRoom(roomName: string) {
-    this.socket?.leave(roomName);
-  }
-}
-
-class UserRoomManager extends UserSocketManager {
-  constructor(socketId: string) {
-    super(socketId);
+class UserRoomManager extends SocketManager {
+  constructor(socketId: string, io: Server) {
+    super(socketId, io);
   }
 
   userCanJoinLocationRoom() {
@@ -75,7 +81,7 @@ class UserRoomManager extends UserSocketManager {
   }
 
   async locationRoomCanAcceptUser(roomName: string, userId: string) {
-    const roomSockets = await io.in(roomName).fetchSockets();
+    const roomSockets = await this.io.in(roomName).fetchSockets();
     return roomSockets.length < MAX_NUM_USERS_PER_ROOM;
   }
 }

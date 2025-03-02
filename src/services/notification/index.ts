@@ -31,24 +31,22 @@ export const createNotification = async (
 };
 
 // 2. Get all notifications
-export const getAllNotifications = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  const query = 'SELECT * FROM notifications WHERE deleted_at IS NULL;';
+export const getUnreadUserNotifications = async ({
+  userId,
+}: {
+  userId: string;
+}): Promise<Notification[] | null> => {
+  const query =
+    'SELECT * FROM notifications WHERE read = false AND userId = $1';
 
   try {
-    const result = await pool.query(query);
+    const result = await pool.query(query, [userId]);
     const notifications: Notification[] = result.rows;
-    res.status(200).json(notifications);
+    return notifications;
   } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error('Error fetching notifications:', error.message);
-      res.status(500).json({ message: error.message });
-    } else {
-      console.error('An unknown error occurred:', error);
-      res.status(500).json({ message: 'An unknown error occurred' });
-    }
+    if (error instanceof Error)
+      console.error('Error fetching notifications:', error.stack);
+    return null;
   }
 };
 
