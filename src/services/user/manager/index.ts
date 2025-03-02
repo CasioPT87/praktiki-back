@@ -1,6 +1,7 @@
 import { Server } from 'socket.io';
 import { NotificationMessage } from '../../../types/utilities';
 import { Channel, SocketManager } from '../../../utilities';
+import { User } from '../../../types/entities';
 
 const NUM_MAX_ROOMS = 1;
 const MAX_NUM_USERS_PER_ROOM = 30;
@@ -57,7 +58,7 @@ export class UserManager {
         throw new Error(e.message + ' for user: ' + this.userId);
     }
     if (
-      this.roomManager.userCanJoinLocationRoom() &&
+      this.roomManager.userCanJoinLocationRoom(this.userId) &&
       (await this.roomManager.locationRoomCanAcceptUser(roomName, this.userId))
     ) {
       this.roomManager.addRoom(roomName);
@@ -79,17 +80,19 @@ class UserRoomManager extends SocketManager {
 
   userHasRoom(roomId: string) {
     if (this.socket) {
-      const socketId = this.socket.id;
       return Array.from(this.socket.rooms).includes(roomId);
     }
     throw new Error(`User not connected to socket`);
   }
 
-  userCanJoinLocationRoom() {
+  userCanJoinLocationRoom(userId: User['id']) {
     if (this.socket) {
       const socketId = this.socket.id;
       const locationRooms = Array.from(this.socket.rooms).filter(
-        (room) => room !== socketId && !GENERAL_ROOMS.includes(room)
+        (room) =>
+          room !== socketId &&
+          !GENERAL_ROOMS.includes(room) &&
+          room !== String(userId)
       );
       return locationRooms.length < NUM_MAX_ROOMS;
     }

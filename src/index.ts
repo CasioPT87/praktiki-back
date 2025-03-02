@@ -54,8 +54,6 @@ const swaggerOptions = {
   apis: ['./index.js'], // Path to the API docs, can add more files here
 };
 
-GlobalLocationChatsManager.addAllLocationChats();
-
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -96,3 +94,5 @@ const websockets = new io(server, {
 messages(websockets);
 
 global.io = websockets;
+
+GlobalLocationChatsManager.addAllLocationChats();

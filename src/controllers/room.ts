@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { AuthorisedRequest } from '../types/utilities';
 import { GlobalUsersManager } from '../services/user/manager';
 import { getLocationChatById } from '../services/locationChat';
+import { GlobalLocationChatsManager } from '../services/locationChat/manager';
 
 export async function joinLocationRoom(
   req: AuthorisedRequest,
@@ -10,14 +11,18 @@ export async function joinLocationRoom(
   try {
     const userId = req.user.id;
     const roomId = req.params.id_room;
-    const room = await getLocationChatById(roomId);
-    if (!room)
+    const locationChatManager = GlobalLocationChatsManager.getLocationChat(
+      Number(roomId)
+    );
+    if (!locationChatManager)
       throw new Error(
         `room ${roomId} not found for user ${userId} when joining room`
       );
     const userManager = GlobalUsersManager.getUser(String(userId));
     if (userManager) {
-      const success = await userManager.joinLocationRoom(room.name);
+      const success = await userManager.joinLocationRoom(
+        locationChatManager.name
+      );
       if (success) {
         res.status(200);
         return;
