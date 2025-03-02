@@ -49,6 +49,13 @@ export class UserManager {
   }
 
   async joinLocationRoom(roomName: string) {
+    try {
+      const userIsAlreadyInRoom = this.roomManager.userHasRoom(roomName);
+      if (userIsAlreadyInRoom) return true;
+    } catch (e) {
+      if (e instanceof Error)
+        throw new Error(e.message + ' for user: ' + this.userId);
+    }
     if (
       this.roomManager.userCanJoinLocationRoom() &&
       (await this.roomManager.locationRoomCanAcceptUser(roomName, this.userId))
@@ -68,6 +75,14 @@ export class UserManager {
 class UserRoomManager extends SocketManager {
   constructor(socketId: string, io: Server) {
     super(socketId, io);
+  }
+
+  userHasRoom(roomId: string) {
+    if (this.socket) {
+      const socketId = this.socket.id;
+      return Array.from(this.socket.rooms).includes(roomId);
+    }
+    throw new Error(`User not connected to socket`);
   }
 
   userCanJoinLocationRoom() {

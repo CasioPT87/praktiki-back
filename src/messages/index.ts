@@ -3,6 +3,9 @@ import { createClient } from 'redis';
 import { Server, Socket } from 'socket.io';
 import cache from '../cache/index';
 import jwt from 'jsonwebtoken';
+import { getUserFromToken } from '../utils/auth';
+import { GlobalUsersManager, UserManager } from '../services/user/manager';
+import { sendInitialNotificationsToUser } from '../services/notification/manager';
 
 const setSocket = async ({ socketId, userName }) => {
   await cache.set(socketId, 10_000, { name: userName });
@@ -64,9 +67,12 @@ export default async function messages(io: Server) {
       token = prodAuthHeader?.split(' ')[1];
     }
 
-    const user = jwt.decode(token);
-
+    const user = await getUserFromToken({ token });
     if (!user) return;
+
+    const userManager = new UserManager(String(user.id), socket.id, io);
+    GlobalUsersManager.addUser(userManager);
+    sendInitialNotificationsToUser(String(user.id));
 
     // aqui hay que coger de la bd todos los mensajes DIRECTOS que se hayan mandado a ese usuario y mandarle una notificacion con los NO leidos
 

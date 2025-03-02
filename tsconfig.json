@@ -14,7 +14,8 @@
     "isolatedModules": false // Ensure that each file can be safely transpiled independently
   },
   "include": [
-    "src/**/*" // Include all TypeScript files in the 'src' directory
+    "src/**/*", // Include all TypeScript files in the 'src' directory
+    "src/types/**/*.d.ts"
   ],
   "exclude": [
     "node_modules" // Exclude node_modules from compilation

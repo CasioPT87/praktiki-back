@@ -241,6 +241,7 @@ router.delete('/private-chat-messages/:id', deletePrivateChatMessageById);
 // LocationChat Routes
 router.post('/location-chats', createLocationChat);
 router.get('/location-chats', getAllLocationChats);
+router.get('/location-chats/join/:id', getAllLocationChats);
 router.get('/location-chats/:id', getLocationChatById);
 router.put('/location-chats/:id', updateLocationChatById);
 router.delete('/location-chats/:id', deleteLocationChatById);

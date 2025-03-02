@@ -32,25 +32,19 @@ export const createLocationChat = async (
 };
 
 // 2. Get all location chats
-export const getAllLocationChats = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+export const getAllLocationChats = async (): Promise<LocationChat[] | null> => {
   const query =
-    'SELECT * FROM location_chats WHERE deleted_at IS NULL ORDER BY created_at;';
+    'SELECT * FROM location_chat WHERE deleted_at IS NULL ORDER BY created_at;';
 
   try {
     const result = await pool.query(query);
     const locationChats: LocationChat[] = result.rows;
-    res.status(200).json(locationChats);
+    return locationChats;
   } catch (error: unknown) {
     if (error instanceof Error) {
       console.error('Error fetching location chats:', error.message);
-      res.status(500).json({ message: error.message });
-    } else {
-      console.error('An unknown error occurred:', error);
-      res.status(500).json({ message: 'An unknown error occurred' });
     }
+    return null;
   }
 };
 
@@ -59,7 +53,7 @@ export const getLocationChatById = async (
   roomId: string
 ): Promise<LocationChat | null> => {
   const query =
-    'SELECT * FROM location_chats WHERE id = $1 AND deleted_at IS NULL;';
+    'SELECT * FROM location_chat WHERE id = $1 AND deleted_at IS NULL;';
 
   try {
     const result = await pool.query(query, [roomId]);

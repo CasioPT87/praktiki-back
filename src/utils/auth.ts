@@ -3,6 +3,16 @@ import { User } from '../types/entities';
 import { NextFunction, Request, Response } from 'express';
 import { AuthorisedRequest } from '../types/utilities';
 
+export function getUserFromToken({ token }: { token: string }) {
+  try {
+    const user = jwt.decode(token) as User;
+    return user;
+  } catch (e) {
+    console.error('User not found');
+    return null;
+  }
+}
+
 export const authorization = async (
   req: Request,
   res: Response,
@@ -20,10 +30,8 @@ export const authorization = async (
 
     if (token) {
       const user = jwt.decode(token) as User;
-      req = {
-        ...req,
-        user,
-      } as AuthorisedRequest;
+
+      req.user = user;
     }
     next();
   } catch (e) {

@@ -1,3 +1,4 @@
+import { getAllLocationChats } from '..';
 import { LocationChat, LocationChatMessage } from '../../../types/entities';
 import { NotificationMessage } from '../../../types/utilities';
 import { Channel, SocketManager } from '../../../utilities';
@@ -6,37 +7,47 @@ import { Server } from 'socket.io';
 class LocationChatsManager {
   locationChats: LocationChatManager[] = [];
 
-  addLocationChat(locationChatManager: LocationChatManager) {
-    if (
-      !this.locationChats.find(
-        (each) => each.locationChat.id === locationChatManager.locationChat.id
-      )
-    ) {
-      this.locationChats.push(locationChatManager);
+  async addAllLocationChats() {
+    const locationChats = await getAllLocationChats();
+    if (locationChats) {
+      locationChats.forEach((locationChat) => {
+        const locationChatManager = new LocationChatManager(locationChat);
+        this.addLocationChat(locationChatManager);
+      });
     }
   }
 
-  getUser(locationChatId: LocationChat['id']) {
+  hasLocationChat(locationChatId: LocationChat['id']) {
+    return this.locationChats.some(
+      (locationChatManager) =>
+        String(locationChatManager.locationChat.id) === String(locationChatId)
+    );
+  }
+
+  addLocationChat(locationChatManager: LocationChatManager) {
+    if (this.hasLocationChat(locationChatManager.locationChat.id)) return;
+    this.locationChats.push(locationChatManager);
+  }
+
+  getLocationChat(
+    locationChatId: LocationChat['id']
+  ): LocationChatManager | undefined {
     return this.locationChats.find(
       (each) => each.locationChat.id === locationChatId
     );
   }
 }
 
-class LocationChatManager {
+export class LocationChatManager {
+  prefix: string = 'location-chat-';
+  name: string;
   locationChat: LocationChat;
   locationChatSocketManager: LocationChatSocketManager;
-  constructor(locationChat: LocationChat, socketId: string, io: Server) {
-    this.locationChat = locationChat;
-    this.locationChatSocketManager = new LocationChatSocketManager(
-      socketId,
-      io
-    );
-    this.joinSelfRoom(String(locationChat.id));
-  }
 
-  private joinSelfRoom(locationChatId: string) {
-    this.locationChatSocketManager.addRoom(locationChatId);
+  constructor(locationChat: LocationChat) {
+    this.name = this.prefix + locationChat.id;
+    this.locationChat = locationChat;
+    this.locationChatSocketManager = new LocationChatSocketManager();
   }
 
   sendMessageToUserConnected(messageText: string) {
@@ -53,8 +64,12 @@ class LocationChatManager {
   }
 }
 
-class LocationChatSocketManager extends SocketManager {
-  constructor(socketId: string, io: Server) {
-    super(socketId, io);
+class LocationChatSocketManager {
+  sendMessageToRoom(roomName: string, message: string) {
+    io.to(roomName).emit(message);
   }
 }
+
+const GlobalLocationChatsManager = new LocationChatsManager();
+
+export { GlobalLocationChatsManager };

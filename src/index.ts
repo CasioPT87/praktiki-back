@@ -16,6 +16,10 @@ import { authorization } from './utils/auth';
 import messages from './messages';
 
 import routes from './routes';
+import {
+  GlobalLocationChatsManager,
+  LocationChatsManager,
+} from './services/locationChat/manager';
 
 // Initialize environment variables
 dotenv.config();
@@ -49,6 +53,9 @@ const swaggerOptions = {
   },
   apis: ['./index.js'], // Path to the API docs, can add more files here
 };
+
+GlobalLocationChatsManager.addAllLocationChats();
+
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -70,7 +77,7 @@ server.on('listening', () => {
   );
 });
 
-export const websockets = new io(server, {
+const websockets = new io(server, {
   cors: {
     origin: `https://localhost:8080`,
     // [
@@ -87,3 +94,5 @@ export const websockets = new io(server, {
 });
 
 messages(websockets);
+
+global.io = websockets;

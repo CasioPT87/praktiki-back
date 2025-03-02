@@ -2,7 +2,7 @@ import { getUnreadUserNotifications } from '..';
 import { GlobalUsersManager } from '../../user/manager';
 import { NotificationMessage } from '../../../types/utilities';
 
-async function sendInitialNotificationsToUser(userId: string) {
+export async function sendInitialNotificationsToUser(userId: string) {
   const notifications = await getUnreadUserNotifications({ userId });
   const userManager = GlobalUsersManager.getUser(userId);
   if (userManager && notifications && notifications.length > 0) {
