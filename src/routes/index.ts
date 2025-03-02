@@ -89,7 +89,7 @@ import {
 
 import {
   createNotification,
-  getAllNotifications,
+  getUnreadUserNotifications,
   getNotificationById,
   updateNotificationById,
   deleteNotificationById,
@@ -159,7 +159,7 @@ router.delete('/roles/:id', deleteRoleById);
 // User Routes
 router.post('/users', createUser);
 router.get('/users', getAllUsers);
-router.get('/users/profile', getUserProfile);
+// router.get('/users/profile', getUserProfile);
 router.get('/users/:id', getUserById);
 router.put('/users/:id', updateUserById);
 router.delete('/users/:id', deleteUserById);
@@ -223,7 +223,7 @@ router.delete('/private-chat-requests/:id', deletePrivateChatRequestById);
 
 // Notification Routes
 router.post('/notifications', createNotification);
-router.get('/notifications', getAllNotifications);
+router.get('/notifications', getUnreadUserNotifications);
 router.get('/notifications/:id', getNotificationById);
 router.put('/notifications/:id', updateNotificationById);
 router.delete('/notifications/:id', deleteNotificationById);

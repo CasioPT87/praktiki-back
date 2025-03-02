@@ -40,7 +40,7 @@ export const getAllLocations = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const query = 'SELECT * FROM locations WHERE deleted_at IS NULL;';
+  const query = 'SELECT * FROM location WHERE deleted_at IS NULL;';
 
   try {
     const result = await pool.query(query);

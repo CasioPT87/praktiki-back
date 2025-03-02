@@ -195,9 +195,9 @@ export const registerUser = async (
     await client.query('BEGIN');
 
     // Find the user by username
-    const queryUser = `INSERT INTO "user"(name) VALUES($1) RETURNING *`;
+    const queryUser = `INSERT INTO "user"("name", "role_id") VALUES($1, $2) RETURNING *;`;
 
-    const newUserResult = await pool.query(queryUser, [username]);
+    const newUserResult = await pool.query(queryUser, [username, 1]);
     const queryAuth = `INSERT INTO user_auth (user_id, password) VALUES ($1, $2)`;
 
     const hashedPassword = await bcrypt.hash(password, 10);
