@@ -4,7 +4,12 @@ import { Router } from 'express';
 // Initialize the router
 const router = Router();
 
-import { registerUser, registerGuest, loginUser } from '../controllers/users';
+import {
+  registerUser,
+  registerGuest,
+  loginUser,
+  getUserLogged,
+} from '../controllers/users';
 
 import { getAllLocationChats } from '../controllers/locationsChats';
 
@@ -12,6 +17,7 @@ import { getAllLocationChats } from '../controllers/locationsChats';
 router.post('/users/register', registerUser);
 router.post('/users/login', loginUser);
 router.get('/users/register/guest', registerGuest);
+router.get('/users/:user_id', getUserLogged);
 
 // Location Routes
 router.get('/location-chats', getAllLocationChats);

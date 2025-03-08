@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import {
   registerUser as registerUserService,
   loginUser as loginUserService,
+  getUser as getUserService,
 } from '../services/user';
 import { createToken } from '../utils/auth';
 
@@ -58,6 +59,27 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
 
     res.status(200).json({ token });
   } catch (err) {
+    res.status(500).send('Error logging in');
+  }
+};
+
+export const getUserLogged = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req?.user?.id as number;
+    if (!userId) throw new Error('User is not logged');
+    const user = await getUserService({ userId });
+
+    if (!user) {
+      res.status(403).send('User not found');
+      return;
+    }
+
+    res.status(200).json({ data: user });
+  } catch (e) {
+    if (e instanceof Error) console.error(e.stack);
     res.status(500).send('Error logging in');
   }
 };

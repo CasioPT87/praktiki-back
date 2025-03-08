@@ -89,3 +89,20 @@ export const loginUser = async ({
     return null;
   }
 };
+
+export const getUser = async ({ userId }): Promise<User | null> => {
+  try {
+    const query = 'SELECT * FROM "user" WHERE id = $1 AND deleted_at IS NULL;';
+    const result = await pool.query(query, [userId]);
+    if (result.rows.length === 0) throw new Error(`User ${userId} not found`);
+    const user: User = result.rows[0];
+    return user;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error fetching user:', error.stack);
+    } else {
+      console.error('An unknown error occurred:', error);
+    }
+    return null;
+  }
+};
