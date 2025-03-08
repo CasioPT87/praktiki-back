@@ -16,10 +16,7 @@ import { authorization } from './utils/auth';
 import messages from './messages';
 
 import routes from './routes';
-import {
-  GlobalLocationChatsManager,
-  LocationChatsManager,
-} from './services/locationChat/manager';
+import { GlobalLocationChatsManager } from './services/locationChat/manager';
 
 // Initialize environment variables
 dotenv.config();

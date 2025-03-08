@@ -1,61 +1,60 @@
 // src/controllers/locationChatMessageController.ts
 import { Request, Response } from 'express';
 import pool from '../../db/connection';
-import { LocationChatMessage } from '../../types/entities';
+import { LocationChat, LocationChatMessage, User } from '../../types/entities';
 
-// 1. Create a new location chat message
-export const createLocationChatMessage = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  const { user_id, location_chat_id, text } = req.body;
-
+export const createLocationChatMessage = async ({
+  user_id,
+  location_chat_id,
+  text,
+}: {
+  user_id: User['id'];
+  location_chat_id: LocationChat['id'];
+  text: string;
+}): Promise<LocationChatMessage | null> => {
   const query = `
-    INSERT INTO location_chat_messages (user_id, location_chat_id, text, created_at, updated_at)
-    VALUES ($1, $2, $3, NOW(), NOW())
+    INSERT INTO location_chat_message (user_id, location_chat_id, text)
+    VALUES ($1, $2, $3)
     RETURNING *;
   `;
 
   try {
     const result = await pool.query(query, [user_id, location_chat_id, text]);
     const newLocationChatMessage: LocationChatMessage = result.rows[0];
-    res.status(201).json(newLocationChatMessage);
+    return newLocationChatMessage;
   } catch (error: unknown) {
     if (error instanceof Error) {
-      console.error('Error creating location chat message:', error.message);
-      res.status(500).json({ message: error.message });
+      console.error('Error creating location chat message:', error.stack);
     } else {
       console.error('An unknown error occurred:', error);
-      res.status(500).json({ message: 'An unknown error occurred' });
     }
+    return null;
   }
 };
 
 // 2. Get all location chat messages for a specific location chat
-export const getLocationChatMessagesByLocationChat = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  const { location_chat_id } = req.params;
-
+export const getLocationChatMessagesByLocationChatId = async ({
+  locationChatId,
+}: {
+  locationChatId: LocationChat['id'];
+}): Promise<LocationChatMessage[] | null> => {
   const query = `
-    SELECT * FROM location_chat_messages 
+    SELECT * FROM location_chat_message
     WHERE location_chat_id = $1 AND deleted_at IS NULL
     ORDER BY created_at;
   `;
 
   try {
-    const result = await pool.query(query, [location_chat_id]);
+    const result = await pool.query(query, [locationChatId]);
     const locationChatMessages: LocationChatMessage[] = result.rows;
-    res.status(200).json(locationChatMessages);
+    return locationChatMessages;
   } catch (error: unknown) {
     if (error instanceof Error) {
-      console.error('Error fetching location chat messages:', error.message);
-      res.status(500).json({ message: error.message });
+      console.error('Error fetching location chat messages:', error.stack);
     } else {
       console.error('An unknown error occurred:', error);
-      res.status(500).json({ message: 'An unknown error occurred' });
     }
+    return null;
   }
 };
 

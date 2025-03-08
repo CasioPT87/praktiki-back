@@ -8,6 +8,10 @@ import { GlobalLocationChatsManager } from '../services/locationChat/manager';
 import { LocationChat, User } from '../types/entities';
 import { SocketManager } from '../utilities';
 import { LocationChatClientMessage } from '../types/utilities';
+import {
+  createLocationChatMessage,
+  getLocationChatMessagesByLocationChatId,
+} from '../services/locationChatMessage';
 
 interface SocketIO extends Socket {
   user: any;
@@ -65,7 +69,10 @@ export default async function messages(io: Server) {
 
     socket.on(
       'joinLocationChat',
-      ({ locationChatId }: { locationChatId: LocationChat['id'] }) => {
+      (
+        { locationChatId }: { locationChatId: LocationChat['id'] },
+        callback
+      ) => {
         try {
           const locationChatManager =
             GlobalLocationChatsManager.getLocationChat(locationChatId);
@@ -84,13 +91,37 @@ export default async function messages(io: Server) {
               locationChatId: LocationChat['id'];
               message: LocationChatClientMessage;
             }) => {
-              const locationChatManager =
-                GlobalLocationChatsManager.getLocationChat(locationChatId);
-              if (locationChatManager) {
-                io.to(locationChatManager.name).emit(
-                  'receiveMessageFromLocationChat',
-                  message
-                );
+              createLocationChatMessage({
+                user_id: user.id,
+                location_chat_id: locationChatId,
+                text: message.content,
+              })
+                .then(() => {
+                  const locationChatManager =
+                    GlobalLocationChatsManager.getLocationChat(locationChatId);
+                  if (locationChatManager) {
+                    io.to(locationChatManager.name).emit(
+                      'receiveMessageFromLocationChat',
+                      message
+                    );
+                  }
+                })
+                .catch((e) => {
+                  throw e;
+                });
+            }
+          );
+          getLocationChatMessagesByLocationChatId({ locationChatId }).then(
+            (data) => {
+              if (data && data.length > 0) {
+                const parsedData = data.map((each) => ({
+                  content: each,
+                  created: each.created_at,
+                }));
+
+                callback(parsedData);
+              } else {
+                callback([]);
               }
             }
           );
