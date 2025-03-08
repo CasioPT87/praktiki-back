@@ -3,14 +3,15 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import pool from '../../db/connection';
 import { User, UserAuth } from '../../types/entities';
-import { createToken } from '../../utils/auth';
 
 export const registerUser = async ({
   username,
   password,
+  rol = 1,
 }: {
   username: string;
   password: string;
+  rol: number;
 }): Promise<User | null> => {
   const client = await pool.connect();
   try {
@@ -22,7 +23,7 @@ export const registerUser = async ({
     // Find the user by username
     const queryUser = `INSERT INTO "user"("name", "role_id") VALUES($1, $2) RETURNING *;`;
 
-    const newUserResult = await pool.query(queryUser, [username, 1]);
+    const newUserResult = await pool.query(queryUser, [username, rol]);
     const queryAuth = `INSERT INTO user_auth (user_id, password) VALUES ($1, $2)`;
 
     const hashedPassword = await bcrypt.hash(password, 10);

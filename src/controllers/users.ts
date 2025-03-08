@@ -13,12 +13,30 @@ export const registerUser = async (
   try {
     const { username, password } = req.body;
 
-    const user = await registerUserService({ username, password });
+    const user = await registerUserService({ username, password, rol: 2 });
     if (!user) throw new Error('Error registering new user');
 
     const token = await createToken({ user });
 
     res.status(200).json({ token });
+    return;
+  } catch (err) {
+    res.status(500).send('Error logging in');
+  }
+};
+
+export const registerGuest = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const username = 'tiggie flu';
+    const password = 'fliski flu';
+
+    const user = await registerUserService({ username, password, rol: 1 });
+    if (!user) throw new Error('Error registering new user');
+
+    res.status(200).json({ data: user });
     return;
   } catch (err) {
     res.status(500).send('Error logging in');

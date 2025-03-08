@@ -82,6 +82,22 @@ export default async function messages(io: Server) {
           const socketManager = new SocketManager(socket);
           socketManager.addRoom(locationChatManager.name);
 
+          getLocationChatMessagesByLocationChatId({ locationChatId }).then(
+            (data) => {
+              if (data && data.length > 0) {
+                console.log('hey!!!');
+                const parsedData = data.map((each) => ({
+                  content: each,
+                  created: each.created_at,
+                }));
+
+                callback(parsedData);
+              } else {
+                callback([]);
+              }
+            }
+          );
+
           socket.on(
             'sendMessageToLocationChat',
             ({
@@ -109,20 +125,6 @@ export default async function messages(io: Server) {
                 .catch((e) => {
                   throw e;
                 });
-            }
-          );
-          getLocationChatMessagesByLocationChatId({ locationChatId }).then(
-            (data) => {
-              if (data && data.length > 0) {
-                const parsedData = data.map((each) => ({
-                  content: each,
-                  created: each.created_at,
-                }));
-
-                callback(parsedData);
-              } else {
-                callback([]);
-              }
             }
           );
         } catch (e) {
