@@ -13,7 +13,7 @@ export const registerUser = async (
   try {
     const { username, password } = req.body;
 
-    const user = await registerUserService({ username, password, rol: 2 });
+    const user = await registerUserService({ username, password, rol: 1 });
     if (!user) throw new Error('Error registering new user');
 
     const token = await createToken({ user });
