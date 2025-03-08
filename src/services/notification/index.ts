@@ -37,7 +37,7 @@ export const getUnreadUserNotifications = async ({
   userId: string;
 }): Promise<Notification[] | null> => {
   const query =
-    'SELECT * FROM notifications WHERE read = false AND userId = $1';
+    'SELECT * FROM notification WHERE read = false AND user_id = $1';
 
   try {
     const result = await pool.query(query, [userId]);

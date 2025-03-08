@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import { getUserFromToken } from '../utils/auth';
 import { GlobalUsersManager, UserManager } from '../services/user/manager';
 import { sendInitialNotificationsToUser } from '../services/notification/manager';
+import { GlobalLocationChatsManager } from '../services/locationChat/manager';
 
 const setSocket = async ({ socketId, userName }) => {
   await cache.set(socketId, 10_000, { name: userName });
@@ -69,6 +70,12 @@ export default async function messages(io: Server) {
 
     const user = await getUserFromToken({ token });
     if (!user) return;
+
+    socket.on('sendMessageToRoom', ({ roomId, message }) => {
+      const locationChatManager =
+        GlobalLocationChatsManager.getLocationChat(roomId);
+      locationChatManager?.sendMessageToUsersConnected(message);
+    });
 
     const userManager = new UserManager(String(user.id), socket.id, io);
     GlobalUsersManager.addUser(userManager);

@@ -1,8 +1,5 @@
 import { getAllLocationChats } from '..';
 import { LocationChat, LocationChatMessage } from '../../../types/entities';
-import { NotificationMessage } from '../../../types/utilities';
-import { Channel, SocketManager } from '../../../utilities';
-import { Server } from 'socket.io';
 
 class LocationChatsManager {
   locationChats: LocationChatManager[] = [];
@@ -32,9 +29,10 @@ class LocationChatsManager {
   getLocationChat(
     locationChatId: LocationChat['id']
   ): LocationChatManager | undefined {
-    return this.locationChats.find(
-      (each) => each.locationChat.id === locationChatId
+    const locationChat = this.locationChats.find(
+      (each) => String(each.locationChat.id) === String(locationChatId)
     );
+    return locationChat;
   }
 }
 
@@ -50,23 +48,14 @@ export class LocationChatManager {
     this.locationChatSocketManager = new LocationChatSocketManager();
   }
 
-  sendMessageToUserConnected(messageText: string) {
-    const locationChatId = String(this.locationChat.id);
-    const locationChatMessage: NotificationMessage = {
-      message: messageText,
-      created: new Date(),
-    };
-    this.locationChatSocketManager.sendMessageToRoom(
-      locationChatId,
-      Channel.publicChatMessage,
-      locationChatMessage
-    );
+  sendMessageToUsersConnected(messageText: string) {
+    this.locationChatSocketManager.sendMessageToRoom(this.name, messageText);
   }
 }
 
 class LocationChatSocketManager {
   sendMessageToRoom(roomName: string, message: string) {
-    io.to(roomName).emit(message);
+    io.to(roomName).emit('receiveMessage', { message });
   }
 }
 

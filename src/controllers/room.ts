@@ -24,15 +24,19 @@ export async function joinLocationRoom(
         locationChatManager.name
       );
       if (success) {
-        res.status(200);
+        res.status(200).json({ data: null });
         return;
       }
     }
-    res.status(500);
+    res
+      .status(500)
+      .json({ data: null, error: 'Joining room did not succeeded' });
     return;
   } catch (e: unknown) {
     if (e instanceof Error) console.error(e.stack);
-    res.status(500);
+    res
+      .status(500)
+      .json({ data: null, error: 'Joining room did not succeeded' });
     return;
   }
 }

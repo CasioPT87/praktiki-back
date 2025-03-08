@@ -62,6 +62,8 @@ export class UserManager {
       (await this.roomManager.locationRoomCanAcceptUser(roomName, this.userId))
     ) {
       this.roomManager.addRoom(roomName);
+      const hey = io.sockets.adapter.rooms.get('location-chat-2');
+
       return true;
     } else {
       return false;

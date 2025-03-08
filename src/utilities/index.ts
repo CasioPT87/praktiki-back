@@ -23,8 +23,9 @@ export class SocketManager {
     this.io.to(userId).emit('notifications', message);
   }
 
-  addRoom(roomName: string) {
+  async addRoom(roomName: string) {
     this.socket?.join(roomName);
+    console.log(this?.socket?.rooms);
   }
 
   leaveRoom(roomName: string) {
