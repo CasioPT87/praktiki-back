@@ -1,34 +1,40 @@
-import { Server, Socket } from 'socket.io';
+import { Socket } from 'socket.io';
 import { NotificationMessage } from '../types/utilities';
 
 export enum Channel {
-  notifications = 'notificacions',
-  publicChatMessage = 'publicChatMessage',
-  privateChatMessage = 'privateChatMessage',
+  // receive
+  receiveNotification = 'receiveNotification',
+  receiveLocalChatMessage = 'receiveLocalChatMessage',
+  receivePrivateChatMessage = 'receivePrivateChatMessage',
+  // emit
+  emitNotification = 'emitNotification',
+  emitLocalChatMessage = 'emitLocalChatMessage',
+  emitPrivateChatMessage = 'emitPrivateChatMessage',
 }
 
 export class SocketManager {
-  socket: Socket | null = null;
-  io: Server;
-  constructor(socketId: string, io: Server) {
-    this.socket = io.sockets.sockets.get(socketId) || null;
-    this.io = io;
+  socket: Socket;
+  constructor(socket: Socket) {
+    this.socket = socket;
   }
 
   sendMessageToRoom(
-    userId: string,
+    roomName: string,
     channel: Channel,
     message: NotificationMessage
   ) {
-    this.io.to(userId).emit('notifications', message);
+    io.to(roomName).emit(channel, message);
   }
 
-  async addRoom(roomName: string) {
-    this.socket?.join(roomName);
-    console.log(this?.socket?.rooms);
+  async addRoom(roomName: string | number) {
+    this.socket.join(String(roomName));
   }
 
   leaveRoom(roomName: string) {
-    this.socket?.leave(roomName);
+    this.socket.leave(roomName);
+  }
+
+  roomHasUser(roomName: string) {
+    return Array.from(this.socket.rooms).includes(roomName);
   }
 }

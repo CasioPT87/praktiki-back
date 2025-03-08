@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import pool from '../../db/connection';
-import { Notification } from '../../types/entities';
+import { Notification, User } from '../../types/entities';
 
 // 1. Create a new notification
 export const createNotification = async (
@@ -34,7 +34,7 @@ export const createNotification = async (
 export const getUnreadUserNotifications = async ({
   userId,
 }: {
-  userId: string;
+  userId: User['id'];
 }): Promise<Notification[] | null> => {
   const query =
     'SELECT * FROM notification WHERE read = false AND user_id = $1';

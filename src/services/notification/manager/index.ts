@@ -1,10 +1,15 @@
 import { getUnreadUserNotifications } from '..';
-import { GlobalUsersManager } from '../../user/manager';
+import { UserManager } from '../../user/manager';
 import { NotificationMessage } from '../../../types/utilities';
+import { Socket } from 'socket.io';
 
-export async function sendInitialNotificationsToUser(userId: string) {
-  const notifications = await getUnreadUserNotifications({ userId });
-  const userManager = GlobalUsersManager.getUser(userId);
+export async function sendInitialNotificationsToUser(
+  userManager: UserManager,
+  socket: Socket
+) {
+  const notifications = await getUnreadUserNotifications({
+    userId: userManager.userId,
+  });
   if (userManager && notifications && notifications.length > 0) {
     const notificationMessages: NotificationMessage[] = notifications.map(
       (notification) => ({
@@ -12,6 +17,6 @@ export async function sendInitialNotificationsToUser(userId: string) {
         created: notification.created_at,
       })
     );
-    userManager.sendNotificationMessages(notificationMessages);
+    socket.emit(userManager.name, notificationMessages);
   }
 }

@@ -1,21 +1,13 @@
 import { createAdapter } from '@socket.io/redis-adapter';
 import { createClient } from 'redis';
 import { Server, Socket } from 'socket.io';
-import cache from '../cache/index';
-import jwt from 'jsonwebtoken';
 import { getUserFromToken } from '../utils/auth';
 import { GlobalUsersManager, UserManager } from '../services/user/manager';
 import { sendInitialNotificationsToUser } from '../services/notification/manager';
 import { GlobalLocationChatsManager } from '../services/locationChat/manager';
-
-const setSocket = async ({ socketId, userName }) => {
-  await cache.set(socketId, 10_000, { name: userName });
-};
-
-const getSocket = async ({ socketId }) => {
-  const value = await cache.get(socketId);
-  return value;
-};
+import { LocationChat, User } from '../types/entities';
+import { SocketManager } from '../utilities';
+import { LocationChatClientMessage } from '../types/utilities';
 
 interface SocketIO extends Socket {
   user: any;
@@ -71,15 +63,46 @@ export default async function messages(io: Server) {
     const user = await getUserFromToken({ token });
     if (!user) return;
 
-    socket.on('sendMessageToRoom', ({ roomId, message }) => {
-      const locationChatManager =
-        GlobalLocationChatsManager.getLocationChat(roomId);
-      locationChatManager?.sendMessageToUsersConnected(message);
-    });
+    socket.on(
+      'joinLocationChat',
+      ({ locationChatId }: { locationChatId: LocationChat['id'] }) => {
+        try {
+          const locationChatManager =
+            GlobalLocationChatsManager.getLocationChat(locationChatId);
+          if (!locationChatManager) {
+            return;
+          }
+          const socketManager = new SocketManager(socket);
+          socketManager.addRoom(locationChatManager.name);
 
-    const userManager = new UserManager(String(user.id), socket.id, io);
+          socket.on(
+            'sendMessageToLocationChat',
+            ({
+              locationChatId,
+              message,
+            }: {
+              locationChatId: LocationChat['id'];
+              message: LocationChatClientMessage;
+            }) => {
+              const locationChatManager =
+                GlobalLocationChatsManager.getLocationChat(locationChatId);
+              if (locationChatManager) {
+                io.to(locationChatManager.name).emit(
+                  'receiveMessageFromLocationChat',
+                  message
+                );
+              }
+            }
+          );
+        } catch (e) {
+          console.log(e);
+        }
+      }
+    );
+
+    const userManager = new UserManager(user.id);
     GlobalUsersManager.addUser(userManager);
-    sendInitialNotificationsToUser(String(user.id));
+    //sendInitialNotificationsToUser(String(user.id));
 
     // aqui hay que coger de la bd todos los mensajes DIRECTOS que se hayan mandado a ese usuario y mandarle una notificacion con los NO leidos
 

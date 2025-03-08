@@ -284,7 +284,6 @@ router.get('/event-comments', getAllEventComments);
 router.delete('/event-comments/:id', deleteEventCommentById);
 
 //Room routers
-router.get('/room/join/:id_room', joinLocationRoom);
 // router.get('/room/leave/:id_room', (req: AuthorisedRequest, res: Response) =>
 //   leaveLocationRoom(req, res)
 // );
