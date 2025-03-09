@@ -12,6 +12,7 @@ import {
   createLocationChatMessage,
   getLocationChatMessagesByLocationChatId,
 } from '../services/locationChatMessage';
+import { getUser as getUserService } from '../services/user';
 
 interface SocketIO extends Socket {
   user: any;
@@ -69,7 +70,7 @@ export default async function messages(io: Server) {
 
     socket.on(
       'joinLocationChat',
-      (
+      async (
         { locationChatId }: { locationChatId: LocationChat['id'] },
         callback
       ) => {
@@ -80,12 +81,40 @@ export default async function messages(io: Server) {
             return;
           }
           const socketManager = new SocketManager(socket);
-          socketManager.addRoom(locationChatManager.name);
+          await socketManager.addRoom(locationChatManager.name);
+
+          const socketIdsConnectedToRoom =
+            locationChatManager.getRoomConnectedSocketIds();
+          if (socketIdsConnectedToRoom) {
+            Promise.all(
+              Array.from(socketIdsConnectedToRoom).map(async (socketId) => {
+                const userManager =
+                  GlobalUsersManager.getUserBySocketId(socketId);
+                if (userManager) {
+                  const user = await getUserService({
+                    userId: userManager.userId,
+                  });
+                  if (user) {
+                    return {
+                      userId: user.id,
+                      name: user.name,
+                    };
+                  }
+                }
+              })
+            ).then((usersConnectedToRoom) => {
+              const filteredUsersConnectedToRoom =
+                usersConnectedToRoom.filter(Boolean);
+              io.to(locationChatManager.name).emit(
+                'usersConnectedToRoom',
+                filteredUsersConnectedToRoom
+              );
+            });
+          }
 
           getLocationChatMessagesByLocationChatId({ locationChatId }).then(
             (data) => {
               if (data && data.length > 0) {
-                console.log('hey!!!');
                 const parsedData = data.map((each) => ({
                   content: each,
                   created: each.created_at,
@@ -133,8 +162,13 @@ export default async function messages(io: Server) {
       }
     );
 
-    const userManager = new UserManager(user.id);
-    GlobalUsersManager.addUser(userManager);
+    const existingUserManager = GlobalUsersManager.getUser(user.id);
+    if (existingUserManager) {
+      existingUserManager.updateSocketId(socket.id);
+    } else {
+      const userManager = new UserManager(user.id, socket.id);
+      GlobalUsersManager.addUser(userManager);
+    }
     //sendInitialNotificationsToUser(String(user.id));
 
     // aqui hay que coger de la bd todos los mensajes DIRECTOS que se hayan mandado a ese usuario y mandarle una notificacion con los NO leidos
