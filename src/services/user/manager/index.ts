@@ -42,6 +42,4 @@ export class UserManager {
   }
 }
 
-const GlobalUsersManager = new UsersManager();
-
-export { GlobalUsersManager };
+export { UsersManager };

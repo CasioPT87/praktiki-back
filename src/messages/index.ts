@@ -2,7 +2,7 @@ import { createAdapter } from '@socket.io/redis-adapter';
 import { createClient } from 'redis';
 import { Namespace, Server, Socket } from 'socket.io';
 import { getUserFromToken } from '../utils/auth';
-import { GlobalUsersManager, UserManager } from '../services/user/manager';
+import { UsersManager, UserManager } from '../services/user/manager';
 import { sendInitialNotificationsToUser } from '../services/notification/manager';
 import { GlobalLocationChatsManager } from '../services/locationChat/manager';
 import { LocationChat, User } from '../types/entities';
@@ -12,24 +12,44 @@ import {
   getLocationChatMessagesByLocationChatId,
 } from '../services/locationChatMessage';
 import { getUser as getUserService } from '../services/user';
+import { GlobalPrivateChatsManager } from '../managers/call';
+import { userInfo } from 'os';
 
 const TEXT_NAMESPACE = '/text';
 const CALL_NAMESPACE = '/call';
 const VIDEO_NAMESPACE = '/video';
 
+async function getUserFromConnection(socket: Socket): Promise<User | null> {
+  let token;
+  // for development
+  if (socket.handshake.auth.token) {
+    token = socket.handshake.auth.token;
+    // for production
+  } else {
+    const prodAuthHeader = socket.handshake.headers.cookie;
+    token = prodAuthHeader?.split(' ')[1];
+  }
+
+  const user = await getUserFromToken({ token });
+  return user;
+}
+
 function sendUserConnectedToRoom({
   socketIds,
   roomName,
   ioNamespace,
+  globalLocationChatUsersManager,
 }: {
   socketIds: string[];
   roomName: string;
   ioNamespace: Namespace;
+  globalLocationChatUsersManager: UsersManager;
 }) {
   if (socketIds) {
     Promise.all(
       Array.from(socketIds).map(async (socketId) => {
-        const userManager = GlobalUsersManager.getUserBySocketId(socketId);
+        const userManager =
+          globalLocationChatUsersManager.getUserBySocketId(socketId);
         if (userManager) {
           const user = await getUserService({
             userId: userManager.userId,
@@ -88,21 +108,23 @@ export default async function messages(io: Server) {
   }
 
   const textIO = io.of(TEXT_NAMESPACE);
-  const callIO = io.of(CALL_NAMESPACE);
+  const videoIO = io.of(VIDEO_NAMESPACE);
+
+  const globalLocationChatUsersManager = new UsersManager();
+  const globalPrivateChatUsersManager = new UsersManager();
+
+  const globalPrivateChatsManager = new GlobalPrivateChatsManager({
+    textIONamespace: textIO,
+    videoIONamespace: videoIO,
+    usersManager: globalPrivateChatUsersManager,
+  });
 
   textIO.on('connection', async (socket) => {
-    let token;
-    // for development
-    if (socket.handshake.auth.token) {
-      token = socket.handshake.auth.token;
-      // for production
-    } else {
-      const prodAuthHeader = socket.handshake.headers.cookie;
-      token = prodAuthHeader?.split(' ')[1];
+    const user = await getUserFromConnection(socket);
+    if (!user) {
+      socket.disconnect();
+      return;
     }
-
-    const user = await getUserFromToken({ token });
-    if (!user) return;
 
     socket.on(
       'joinLocationChat',
@@ -128,6 +150,7 @@ export default async function messages(io: Server) {
               socketIds: Array.from(socketIdsConnectedToRoom),
               roomName: locationChatManager.name,
               ioNamespace: textIO,
+              globalLocationChatUsersManager,
             });
           }
 
@@ -181,10 +204,12 @@ export default async function messages(io: Server) {
     );
 
     socket.on('disconnecting', (reason) => {
-      const existingUserManager = GlobalUsersManager.getUser(user.id);
+      const existingUserManager = globalLocationChatUsersManager.getUser(
+        user.id
+      );
       // remove user from global users
       if (existingUserManager) {
-        GlobalUsersManager.removeUser(existingUserManager.userId);
+        globalLocationChatUsersManager.removeUser(existingUserManager.userId);
       }
       // send message to the people from all rooms indicating all the users in that room (there is one less now)
       const rooms = Array.from(socket.rooms);
@@ -202,22 +227,72 @@ export default async function messages(io: Server) {
               socketIds: socketIdsMinusOneAboutToLeave,
               roomName: locationChatManager.name,
               ioNamespace: textIO,
+              globalLocationChatUsersManager,
             });
           }
         }
       });
     });
 
-    const existingUserManager = GlobalUsersManager.getUser(user.id);
+    const existingUserManager = globalLocationChatUsersManager.getUser(user.id);
     if (existingUserManager) {
       existingUserManager.updateSocketId(socket.id);
     } else {
       const userManager = new UserManager(user.id, socket.id);
-      GlobalUsersManager.addUser(userManager);
+      globalLocationChatUsersManager.addUser(userManager);
     }
   });
 
-  callIO.on('connection', async (socket) => {});
+  videoIO.on('connection', async (socket) => {
+    const user = await getUserFromConnection(socket);
+    if (!user) {
+      socket.disconnect();
+      return;
+    }
+
+    const existingUserManager = globalPrivateChatUsersManager.getUser(user.id);
+    if (existingUserManager) {
+      existingUserManager.updateSocketId(socket.id);
+    } else {
+      const userManager = new UserManager(user.id, socket.id);
+      globalPrivateChatUsersManager.addUser(userManager);
+    }
+
+    socket.on('disconnecting', (reason) => {
+      const existingUserManager = globalPrivateChatUsersManager.getUser(
+        user.id
+      );
+      // remove user from global users
+      if (existingUserManager) {
+        globalPrivateChatUsersManager.removeUser(existingUserManager.userId);
+      }
+    });
+
+    socket.on(
+      'private-chat:create',
+      ({ targetUserId }: { targetUserId: User['id'] }) => {
+        try {
+          globalPrivateChatsManager.addRequest({
+            creatorUserId: user.id,
+            targetUserId,
+          });
+        } catch (e) {
+          if (e instanceof Error) console.error(e.stack);
+        }
+      }
+    );
+
+    socket.on(
+      'private-chat:accept',
+      ({ privateChatId }: { privateChatId: string }) => {
+        try {
+          globalPrivateChatsManager.acceptRequest(privateChatId);
+        } catch (e) {
+          if (e instanceof Error) console.error(e.stack);
+        }
+      }
+    );
+  });
 
   //sendInitialNotificationsToUser(String(user.id));
 
