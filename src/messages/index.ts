@@ -1,12 +1,11 @@
 import { createAdapter } from '@socket.io/redis-adapter';
 import { createClient } from 'redis';
-import { Server, Socket } from 'socket.io';
+import { Namespace, Server, Socket } from 'socket.io';
 import { getUserFromToken } from '../utils/auth';
 import { GlobalUsersManager, UserManager } from '../services/user/manager';
 import { sendInitialNotificationsToUser } from '../services/notification/manager';
 import { GlobalLocationChatsManager } from '../services/locationChat/manager';
 import { LocationChat, User } from '../types/entities';
-import { SocketManager } from '../utilities';
 import { LocationChatClientMessage } from '../types/utilities';
 import {
   createLocationChatMessage,
@@ -14,12 +13,17 @@ import {
 } from '../services/locationChatMessage';
 import { getUser as getUserService } from '../services/user';
 
+const TEXT_NAMESPACE = '/text';
+const VIDEO_NAMESPACE = '/video';
+
 function sendUserConnectedToRoom({
   socketIds,
   roomName,
+  ioNamespace,
 }: {
   socketIds: string[];
   roomName: string;
+  ioNamespace: Namespace;
 }) {
   if (socketIds) {
     Promise.all(
@@ -39,10 +43,9 @@ function sendUserConnectedToRoom({
       })
     ).then((usersConnectedToRoom) => {
       const filteredUsersConnectedToRoom = usersConnectedToRoom.filter(Boolean);
-      io.to(roomName).emit(
-        'usersConnectedToRoom',
-        filteredUsersConnectedToRoom
-      );
+      ioNamespace
+        .to(roomName)
+        .emit('usersConnectedToRoom', filteredUsersConnectedToRoom);
     });
   }
 }
@@ -87,7 +90,9 @@ export default async function messages(io: Server) {
     io.adapter(createAdapter(redisClientPub, redisClientSub));
   }
 
-  io.on('connection', async (socket) => {
+  const textIO = io.of(TEXT_NAMESPACE);
+
+  textIO.on('connection', async (socket) => {
     let token;
     // for development
     if (socket.handshake.auth.token) {
@@ -113,17 +118,21 @@ export default async function messages(io: Server) {
           if (!locationChatManager) {
             return;
           }
-          const socketManager = new SocketManager(socket);
-          await socketManager.addRoom(locationChatManager.name);
+
+          const socketIdsConnectedToRoom4 =
+            locationChatManager.getRoomConnectedSocketIds(textIO);
+
+          socket.join(locationChatManager.name);
 
           // mandar a todos los usuarios de la room los usuarios conectados (ahora hay uno mas!)
           const socketIdsConnectedToRoom =
-            locationChatManager.getRoomConnectedSocketIds();
+            locationChatManager.getRoomConnectedSocketIds(textIO);
 
           if (socketIdsConnectedToRoom) {
             sendUserConnectedToRoom({
               socketIds: Array.from(socketIdsConnectedToRoom),
               roomName: locationChatManager.name,
+              ioNamespace: textIO,
             });
           }
 
@@ -160,10 +169,9 @@ export default async function messages(io: Server) {
                   const locationChatManager =
                     GlobalLocationChatsManager.getLocationChat(locationChatId);
                   if (locationChatManager) {
-                    io.to(locationChatManager.name).emit(
-                      'receiveMessageFromLocationChat',
-                      message
-                    );
+                    textIO
+                      .to(locationChatManager.name)
+                      .emit('receiveMessageFromLocationChat', message);
                   }
                 })
                 .catch((e) => {
@@ -172,7 +180,7 @@ export default async function messages(io: Server) {
             }
           );
         } catch (e) {
-          console.log(e);
+          if (e instanceof Error) console.error(e.stack);
         }
       }
     );
@@ -190,7 +198,7 @@ export default async function messages(io: Server) {
           GlobalLocationChatsManager.getLocationChatByName(roomName);
         if (locationChatManager) {
           const socketIdsConnectedToRoom =
-            locationChatManager.getRoomConnectedSocketIds();
+            locationChatManager.getRoomConnectedSocketIds(textIO);
           if (socketIdsConnectedToRoom) {
             const socketIdsMinusOneAboutToLeave = Array.from(
               socketIdsConnectedToRoom
@@ -198,6 +206,7 @@ export default async function messages(io: Server) {
             sendUserConnectedToRoom({
               socketIds: socketIdsMinusOneAboutToLeave,
               roomName: locationChatManager.name,
+              ioNamespace: textIO,
             });
           }
         }

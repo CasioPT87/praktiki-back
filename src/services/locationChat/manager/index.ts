@@ -1,10 +1,6 @@
-import { Socket } from 'socket.io';
+import { Namespace, Socket } from 'socket.io';
 import { getAllLocationChats } from '..';
-import {
-  LocationChat,
-  LocationChatMessage,
-  User,
-} from '../../../types/entities';
+import { LocationChat } from '../../../types/entities';
 
 class LocationChatsManager {
   locationChats: LocationChatManager[] = [];
@@ -58,8 +54,9 @@ export class LocationChatManager {
     this.locationChat = locationChat;
   }
 
-  getRoomConnectedSocketIds() {
-    return io.sockets.adapter.rooms.get(this.name);
+  getRoomConnectedSocketIds(ioNamespace: Namespace) {
+    const socketIds = ioNamespace.adapter.rooms.get(this.name);
+    return socketIds;
   }
 }
 
