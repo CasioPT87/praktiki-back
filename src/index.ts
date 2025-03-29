@@ -73,6 +73,12 @@ server.on('listening', () => {
 });
 
 const websockets = new io(server, {
+  connectionStateRecovery: {
+    // the backup duration of the sessions and the packets
+    maxDisconnectionDuration: 2 * 60 * 1000,
+    // whether to skip middlewares upon successful recovery
+    skipMiddlewares: true,
+  },
   cors: {
     origin: `https://localhost:8080`,
     // [

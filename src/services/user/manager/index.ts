@@ -19,6 +19,10 @@ class UsersManager {
   getUserBySocketId(socketId: Socket['id']) {
     return this.users.find((each) => each.socketId === socketId) || null;
   }
+
+  removeUser(userId: User['id']) {
+    this.users = this.users.filter((each) => each.userId !== userId);
+  }
 }
 
 export class UserManager {

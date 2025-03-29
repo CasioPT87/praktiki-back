@@ -39,6 +39,13 @@ class LocationChatsManager {
     );
     return locationChat;
   }
+
+  getLocationChatByName(roomName: LocationChatManager['name']) {
+    const locationChat = this.locationChats.find(
+      (each) => each.name === roomName
+    );
+    return locationChat;
+  }
 }
 
 export class LocationChatManager {

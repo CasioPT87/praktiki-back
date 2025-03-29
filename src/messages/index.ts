@@ -14,6 +14,39 @@ import {
 } from '../services/locationChatMessage';
 import { getUser as getUserService } from '../services/user';
 
+function sendUserConnectedToRoom({
+  socketIds,
+  roomName,
+}: {
+  socketIds: string[];
+  roomName: string;
+}) {
+  if (socketIds) {
+    Promise.all(
+      Array.from(socketIds).map(async (socketId) => {
+        const userManager = GlobalUsersManager.getUserBySocketId(socketId);
+        if (userManager) {
+          const user = await getUserService({
+            userId: userManager.userId,
+          });
+          if (user) {
+            return {
+              userId: user.id,
+              name: user.name,
+            };
+          }
+        }
+      })
+    ).then((usersConnectedToRoom) => {
+      const filteredUsersConnectedToRoom = usersConnectedToRoom.filter(Boolean);
+      io.to(roomName).emit(
+        'usersConnectedToRoom',
+        filteredUsersConnectedToRoom
+      );
+    });
+  }
+}
+
 interface SocketIO extends Socket {
   user: any;
 }
@@ -83,32 +116,14 @@ export default async function messages(io: Server) {
           const socketManager = new SocketManager(socket);
           await socketManager.addRoom(locationChatManager.name);
 
+          // mandar a todos los usuarios de la room los usuarios conectados (ahora hay uno mas!)
           const socketIdsConnectedToRoom =
             locationChatManager.getRoomConnectedSocketIds();
+
           if (socketIdsConnectedToRoom) {
-            Promise.all(
-              Array.from(socketIdsConnectedToRoom).map(async (socketId) => {
-                const userManager =
-                  GlobalUsersManager.getUserBySocketId(socketId);
-                if (userManager) {
-                  const user = await getUserService({
-                    userId: userManager.userId,
-                  });
-                  if (user) {
-                    return {
-                      userId: user.id,
-                      name: user.name,
-                    };
-                  }
-                }
-              })
-            ).then((usersConnectedToRoom) => {
-              const filteredUsersConnectedToRoom =
-                usersConnectedToRoom.filter(Boolean);
-              io.to(locationChatManager.name).emit(
-                'usersConnectedToRoom',
-                filteredUsersConnectedToRoom
-              );
+            sendUserConnectedToRoom({
+              socketIds: Array.from(socketIdsConnectedToRoom),
+              roomName: locationChatManager.name,
             });
           }
 
@@ -161,6 +176,33 @@ export default async function messages(io: Server) {
         }
       }
     );
+
+    socket.on('disconnecting', (reason) => {
+      const existingUserManager = GlobalUsersManager.getUser(user.id);
+      // remove user from global users
+      if (existingUserManager) {
+        GlobalUsersManager.removeUser(existingUserManager.userId);
+      }
+      // send message to the people from all rooms indicating all the users in that room (there is one less now)
+      const rooms = Array.from(socket.rooms);
+      rooms.forEach((roomName) => {
+        const locationChatManager =
+          GlobalLocationChatsManager.getLocationChatByName(roomName);
+        if (locationChatManager) {
+          const socketIdsConnectedToRoom =
+            locationChatManager.getRoomConnectedSocketIds();
+          if (socketIdsConnectedToRoom) {
+            const socketIdsMinusOneAboutToLeave = Array.from(
+              socketIdsConnectedToRoom
+            ).filter((socketId) => socketId !== socket.id);
+            sendUserConnectedToRoom({
+              socketIds: socketIdsMinusOneAboutToLeave,
+              roomName: locationChatManager.name,
+            });
+          }
+        }
+      });
+    });
 
     const existingUserManager = GlobalUsersManager.getUser(user.id);
     if (existingUserManager) {
