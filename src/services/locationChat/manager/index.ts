@@ -4,12 +4,20 @@ import { LocationChat } from '../../../types/entities';
 
 class LocationChatsManager {
   locationChats: LocationChatManager[] = [];
+  namespace: Namespace;
+
+  constructor(textIO: Namespace) {
+    this.namespace = textIO;
+  }
 
   async addAllLocationChats() {
     const locationChats = await getAllLocationChats();
     if (locationChats) {
       locationChats.forEach((locationChat) => {
-        const locationChatManager = new LocationChatManager(locationChat);
+        const locationChatManager = new LocationChatManager(
+          locationChat,
+          this.namespace
+        );
         this.addLocationChat(locationChatManager);
       });
     }
@@ -42,24 +50,35 @@ class LocationChatsManager {
     );
     return locationChat;
   }
+
+  getLocationChatByConnectedSocketId(socketId: Socket['id']) {
+    const locationChat = this.locationChats.find((each) =>
+      each.hasSocketId(socketId)
+    );
+    return locationChat;
+  }
 }
 
 export class LocationChatManager {
   prefix: string = 'location-chat-';
   name: string;
   locationChat: LocationChat;
+  namespace: Namespace;
 
-  constructor(locationChat: LocationChat) {
+  constructor(locationChat: LocationChat, namespace: Namespace) {
     this.name = this.prefix + locationChat.id;
     this.locationChat = locationChat;
+    this.namespace = namespace;
   }
 
-  getRoomConnectedSocketIds(ioNamespace: Namespace) {
-    const socketIds = ioNamespace.adapter.rooms.get(this.name);
+  getRoomConnectedSocketIds() {
+    const socketIds = this.namespace.adapter.rooms.get(this.name);
     return socketIds;
+  }
+
+  hasSocketId(sockerId: Socket['id']) {
+    return this.namespace.adapter.rooms.has(sockerId);
   }
 }
 
-const GlobalLocationChatsManager = new LocationChatsManager();
-
-export { GlobalLocationChatsManager };
+export { LocationChatsManager };

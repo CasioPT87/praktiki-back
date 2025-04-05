@@ -4,7 +4,7 @@ import { Namespace, Server, Socket } from 'socket.io';
 import { getUserFromToken } from '../utils/auth';
 import { UsersManager, UserManager } from '../services/user/manager';
 import { sendInitialNotificationsToUser } from '../services/notification/manager';
-import { GlobalLocationChatsManager } from '../services/locationChat/manager';
+import { LocationChatsManager } from '../services/locationChat/manager';
 import { LocationChat, User } from '../types/entities';
 import { LocationChatClientMessage } from '../types/utilities';
 import {
@@ -34,7 +34,7 @@ async function getUserFromConnection(socket: Socket): Promise<User | null> {
   return user;
 }
 
-function sendUserConnectedToRoom({
+async function getUsersConnectedToRoom({
   socketIds,
   roomName,
   ioNamespace,
@@ -45,30 +45,23 @@ function sendUserConnectedToRoom({
   ioNamespace: Namespace;
   globalLocationChatUsersManager: UsersManager;
 }) {
-  if (socketIds) {
-    Promise.all(
-      Array.from(socketIds).map(async (socketId) => {
-        const userManager =
-          globalLocationChatUsersManager.getUserBySocketId(socketId);
-        if (userManager) {
-          const user = await getUserService({
-            userId: userManager.userId,
-          });
-          if (user) {
-            return {
-              userId: user.id,
-              name: user.name,
-            };
-          }
+  return Promise.all(
+    Array.from(socketIds).map(async (socketId) => {
+      const userManager =
+        globalLocationChatUsersManager.getUserBySocketId(socketId);
+      if (userManager) {
+        const user = await getUserService({
+          userId: userManager.userId,
+        });
+        if (user) {
+          return {
+            userId: user.id,
+            name: user.name,
+          };
         }
-      })
-    ).then((usersConnectedToRoom) => {
-      const filteredUsersConnectedToRoom = usersConnectedToRoom.filter(Boolean);
-      ioNamespace
-        .to(roomName)
-        .emit('usersConnectedToRoom', filteredUsersConnectedToRoom);
-    });
-  }
+      }
+    })
+  );
 }
 
 //offers will contain {}
@@ -110,6 +103,11 @@ export default async function messages(io: Server) {
   const textIO = io.of(TEXT_NAMESPACE);
   const videoIO = io.of(VIDEO_NAMESPACE);
 
+  const globalLocationChatsManager: LocationChatsManager =
+    new LocationChatsManager(textIO);
+
+  globalLocationChatsManager.addAllLocationChats();
+
   const globalLocationChatUsersManager = new UsersManager();
   const globalPrivateChatUsersManager = new UsersManager();
 
@@ -127,81 +125,93 @@ export default async function messages(io: Server) {
     }
 
     socket.on(
-      'joinLocationChat',
+      'location-chat:join',
       async (
         { locationChatId }: { locationChatId: LocationChat['id'] },
         callback
       ) => {
         try {
           const locationChatManager =
-            GlobalLocationChatsManager.getLocationChat(locationChatId);
+            globalLocationChatsManager.getLocationChat(locationChatId);
           if (!locationChatManager) {
-            return;
+            return false;
           }
 
           socket.join(locationChatManager.name); // the user joins the room
 
-          // mandar a todos los usuarios de la room los usuarios conectados (ahora hay uno mas!)
-          const socketIdsConnectedToRoom =
-            locationChatManager.getRoomConnectedSocketIds(textIO);
-
-          if (socketIdsConnectedToRoom) {
-            sendUserConnectedToRoom({
-              socketIds: Array.from(socketIdsConnectedToRoom),
-              roomName: locationChatManager.name,
-              ioNamespace: textIO,
-              globalLocationChatUsersManager,
-            });
-          }
-
-          getLocationChatMessagesByLocationChatId({ locationChatId }).then(
-            (data) => {
-              if (data && data.length > 0) {
-                const parsedData = data.map((each) => ({
-                  content: each,
-                  created: each.created_at,
-                }));
-
-                callback(parsedData);
-              } else {
-                callback([]);
-              }
-            }
-          );
-
-          socket.on(
-            'sendMessageToLocationChat',
-            ({
-              locationChatId,
-              message,
-            }: {
-              locationChatId: LocationChat['id'];
-              message: LocationChatClientMessage;
-            }) => {
-              createLocationChatMessage({
-                user_id: user.id,
-                location_chat_id: locationChatId,
-                text: message.content,
-              })
-                .then(() => {
-                  const locationChatManager =
-                    GlobalLocationChatsManager.getLocationChat(locationChatId);
-                  if (locationChatManager) {
-                    textIO
-                      .to(locationChatManager.name)
-                      .emit('receiveMessageFromLocationChat', message);
-                  }
-                })
-                .catch((e) => {
-                  throw e;
-                });
-            }
-          );
+          return callback(true);
         } catch (e) {
-          if (e instanceof Error) console.error(e.stack);
+          if (e instanceof Error) {
+            console.error(e.stack);
+            return callback(false);
+          }
         }
       }
     );
+
+    socket.on(
+      'location-chat-message:create',
+      ({ message }: { message: LocationChatClientMessage }) => {
+        const locationChatManager =
+          globalLocationChatsManager.getLocationChatByConnectedSocketId(
+            socket.id
+          );
+        if (locationChatManager) {
+          getUsersConnectedToRoom({
+            user_id: user.id,
+            location_chat_id: locationChatManager.locationChat.id,
+            text: message.content,
+          }).then((users) => {
+            textIO
+              .to(locationChatManager.name)
+              .emit('location-chat-users:get', users);
+          });
+        }
+      }
+    );
+
+    socket.on('location-chat-messages:get', () => {
+      const locationChatManager =
+        globalLocationChatsManager.getLocationChatByConnectedSocketId(
+          socket.id
+        );
+      if (locationChatManager) {
+        getLocationChatMessagesByLocationChatId({
+          locationChatId: locationChatManager.locationChat.id,
+        }).then((data) => {
+          if (data && data.length > 0) {
+            const parsedData = data.map((each) => ({
+              content: each.text,
+              created: each.created_at,
+            }));
+
+            socket.emit('location-chat-messages:get', parsedData);
+          } else {
+            socket.emit('location-chat-messages:get', []);
+          }
+        });
+      }
+    });
+
+    socket.on('location-chat-users:get', () => {
+      const locationChatManager =
+        globalLocationChatsManager.getLocationChatByConnectedSocketId(
+          socket.id
+        );
+      if (locationChatManager) {
+        const socketIdsConnectedToRoom =
+          locationChatManager.getRoomConnectedSocketIds();
+
+        if (socketIdsConnectedToRoom) {
+          sendUserConnectedToRoom({
+            socketIds: Array.from(socketIdsConnectedToRoom),
+            roomName: locationChatManager.name,
+            ioNamespace: textIO,
+            globalLocationChatUsersManager,
+          });
+        }
+      }
+    });
 
     socket.on('disconnecting', (reason) => {
       const existingUserManager = globalLocationChatUsersManager.getUser(
@@ -215,10 +225,10 @@ export default async function messages(io: Server) {
       const rooms = Array.from(socket.rooms);
       rooms.forEach((roomName) => {
         const locationChatManager =
-          GlobalLocationChatsManager.getLocationChatByName(roomName);
+          globalLocationChatsManager.getLocationChatByName(roomName);
         if (locationChatManager) {
           const socketIdsConnectedToRoom =
-            locationChatManager.getRoomConnectedSocketIds(textIO);
+            locationChatManager.getRoomConnectedSocketIds();
           if (socketIdsConnectedToRoom) {
             const socketIdsMinusOneAboutToLeave = Array.from(
               socketIdsConnectedToRoom

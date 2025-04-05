@@ -16,7 +16,6 @@ import { authorization } from './utils/auth';
 import messages from './messages';
 
 import routes from './routes';
-import { GlobalLocationChatsManager } from './services/locationChat/manager';
 
 // Initialize environment variables
 dotenv.config();
@@ -97,5 +96,3 @@ const websockets = new io(server, {
 messages(websockets);
 
 global.io = websockets;
-
-GlobalLocationChatsManager.addAllLocationChats();
