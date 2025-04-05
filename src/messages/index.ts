@@ -330,7 +330,27 @@ export default async function messages(io: Server) {
       'private-chat:accept',
       ({ privateChatId }: { privateChatId: string }) => {
         try {
-          globalPrivateChatsManager.acceptRequest(privateChatId);
+          const privateChatRequest =
+            globalPrivateChatsManager.acceptRequest(privateChatId);
+          if (!privateChatRequest) return;
+          const creatorUserId = privateChatRequest.creatorUserId;
+          const targetUserId = privateChatRequest.targetUserId;
+          const creator =
+            globalPrivateChatUsersManager.getUserByUserId(creatorUserId);
+          const target =
+            globalPrivateChatUsersManager.getUserByUserId(targetUserId);
+          if (!creator || !target) return;
+          const creatorSocket = videoIO.sockets.get(creator.socketId);
+          const targetSocket = videoIO.sockets.get(target.socketId);
+          if (!creatorSocket || !targetSocket) return;
+          creatorSocket.emit('private-chat:start', {
+            creator: true,
+            target: false,
+          });
+          targetSocket.emit('private-chat:start', {
+            creator: false,
+            target: true,
+          });
         } catch (e) {
           if (e instanceof Error) console.error(e.stack);
         }

@@ -20,6 +20,10 @@ class UsersManager {
     return this.users.find((each) => each.socketId === socketId) || null;
   }
 
+  getUserByUserId(userId: User['id']) {
+    return this.users.find((each) => each.userId === userId) || null;
+  }
+
   removeUser(userId: User['id']) {
     this.users = this.users.filter((each) => each.userId !== userId);
   }

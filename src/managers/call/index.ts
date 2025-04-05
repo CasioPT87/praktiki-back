@@ -166,6 +166,7 @@ class GlobalPrivateChatsManager {
       privateChatRequest.accept();
       this.addOngoing({ privateChat: privateChatRequest });
       privateChatRequest.connect();
+      return privateChatRequest;
     }
   }
 }
