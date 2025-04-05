@@ -76,8 +76,14 @@ export class LocationChatManager {
     return socketIds;
   }
 
+  getRoom() {
+    return this.namespace.adapter.rooms.get(this.name);
+  }
+
   hasSocketId(sockerId: Socket['id']) {
-    return this.namespace.adapter.rooms.has(sockerId);
+    const room = this.getRoom();
+    if (!room) return false;
+    return room.has(sockerId);
   }
 }
 
