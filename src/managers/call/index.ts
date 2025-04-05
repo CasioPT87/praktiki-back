@@ -130,8 +130,10 @@ class GlobalPrivateChatsManager {
   }) {
     const exists = this.privateChatRequests.some(
       (request) =>
-        request.creatorUserId === creatorUserId &&
-        request.targetUserId === targetUserId
+        (request.creatorUserId === creatorUserId &&
+          request.targetUserId === targetUserId) ||
+        (request.creatorUserId === targetUserId &&
+          request.targetUserId === creatorUserId)
     );
     return exists;
   }
