@@ -169,6 +169,21 @@ class GlobalPrivateChatsManager {
       return privateChatRequest;
     }
   }
+
+  getByIdAndState({ id, state }: { id: string; state: Connection }) {
+    let privateChats = [];
+    if (state === Connection.pending) {
+      privateChats = this.privateChatRequests;
+      const privateChat = privateChats.find((each) => each.id === id);
+      return privateChat;
+    } else if (state === Connection.onGoing) {
+      privateChats = this.privateChatsOngoing;
+      const privateChat = privateChats.find((each) => each.id === id);
+      return privateChat;
+    }
+
+    return null;
+  }
 }
 
 export { GlobalPrivateChatsManager };
