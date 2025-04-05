@@ -115,6 +115,35 @@ export default async function messages(io: Server) {
 
           socket.join(locationChatManager.name); // the user joins the room
 
+          /* send list of users to the room's users */
+          if (locationChatManager) {
+            const socketIdsConnectedToRoom =
+              locationChatManager.getRoomConnectedSocketIds();
+            if (!socketIdsConnectedToRoom) return;
+            Promise.all(
+              Array.from(socketIdsConnectedToRoom).map(async (socketId) => {
+                const userManager =
+                  globalLocationChatUsersManager.getUserBySocketId(socketId);
+                if (userManager) {
+                  const user = await getUserService({
+                    userId: userManager.userId,
+                  });
+                  if (user) {
+                    return {
+                      userId: user.id,
+                      name: user.name,
+                    };
+                  }
+                }
+              })
+            ).then((users) => {
+              textIO
+                .to(locationChatManager.name)
+                .emit('location-chat-users:get', users);
+            });
+          }
+          /* ** */
+
           return callback(true);
         } catch (e) {
           if (e instanceof Error) {
@@ -239,9 +268,10 @@ export default async function messages(io: Server) {
                 }
               })
             ).then((users) => {
+              const filteredUsers = users.filter(Boolean);
               textIO
                 .to(locationChatManager.name)
-                .emit('location-chat-users:get', users);
+                .emit('location-chat-users:get', filteredUsers);
             });
           }
         }
