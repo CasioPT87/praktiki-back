@@ -345,6 +345,7 @@ export default async function messages(io: Server) {
           creatorSocket.emit('private-chat:start', {
             creator: true,
             target: false,
+            privateChatId,
           });
           targetSocket.emit('private-chat:start', {
             creator: false,
@@ -365,85 +366,121 @@ export default async function messages(io: Server) {
       if (!privateChatRequest) return;
       const targetSocketId = privateChatRequest
         .getSocketFromUserId(privateChatRequest.targetUserId)
-        .then((targetSocket) => {
-          if (!targetSocketId) return;
-          targetSocket.emit('offer:create', offer);
+        .then((socketToSend) => {
+          if (!socketToSend) return;
+          socketToSend.emit('offer:create', offer);
         });
     });
+
+    socket.on('offer:answer', ({ offerAnswer, privateChatId }) => {
+      const privateChatRequest = globalPrivateChatsManager.getByIdAndState({
+        id: privateChatId,
+        state: Connection.onGoing,
+      });
+      if (!privateChatRequest) return;
+      privateChatRequest
+        .getSocketFromUserId(privateChatRequest.creatorUserId)
+        .then((socketToSend) => {
+          if (!socketToSend) return;
+          socketToSend.emit('offer:answer', offerAnswer);
+        });
+    });
+
+    socket.on(
+      'ice-candidates:create',
+      ({ iceCandidate, privateChatId, isCreator }) => {
+        const privateChatRequest = globalPrivateChatsManager.getByIdAndState({
+          id: privateChatId,
+          state: Connection.onGoing,
+        });
+        if (!privateChatRequest) return;
+        privateChatRequest
+          // is its the creator we want to send it to the target and viceversa
+          .getSocketFromUserId(
+            isCreator
+              ? privateChatRequest.targetUserId
+              : privateChatRequest.creatorUserId
+          )
+          .then((targetSocket) => {
+            if (!targetSocket) return;
+            targetSocket.emit('ice-candidates:create', iceCandidate);
+          });
+      }
+    );
   });
 
-  // esto pasa cuando un usuario responde una oferta
-  socket.on('offer:accept', (offerObj, ackFunction) => {
-    // encontramos el socket del usuario que hizo la oferta
-    const socketToAnswer = connectedSockets.find(
-      (s) => s.userName === offerObj.offererUserName
-    );
-    if (!socketToAnswer) {
-      console.log('No matching socket');
-      return;
-    }
-    //we found the matching socket, so we can emit to it!
-    const socketIdToAnswer = socketToAnswer.socketId;
-    //we find the offer to update so we can emit it
-    const offerToUpdate = offers.find(
-      (o) => o.offererUserName === offerObj.offererUserName
-    );
-    if (!offerToUpdate) {
-      console.log('No OfferToUpdate');
-      return;
-    }
-    //send back to the answerer all the iceCandidates we have already collected
-    ackFunction(offerToUpdate.offerIceCandidates);
-    offerToUpdate.answer = offerObj.answer;
-    offerToUpdate.answererUserName = userName;
-    //socket has a .to() which allows emiting to a "room"
-    //every socket has it's own room
-    socket.to(socketIdToAnswer).emit('answerResponse', offerToUpdate);
-  });
+  // // esto pasa cuando un usuario responde una oferta
+  // socket.on('offer:accept', (offerObj, ackFunction) => {
+  //   // encontramos el socket del usuario que hizo la oferta
+  //   const socketToAnswer = connectedSockets.find(
+  //     (s) => s.userName === offerObj.offererUserName
+  //   );
+  //   if (!socketToAnswer) {
+  //     console.log('No matching socket');
+  //     return;
+  //   }
+  //   //we found the matching socket, so we can emit to it!
+  //   const socketIdToAnswer = socketToAnswer.socketId;
+  //   //we find the offer to update so we can emit it
+  //   const offerToUpdate = offers.find(
+  //     (o) => o.offererUserName === offerObj.offererUserName
+  //   );
+  //   if (!offerToUpdate) {
+  //     console.log('No OfferToUpdate');
+  //     return;
+  //   }
+  //   //send back to the answerer all the iceCandidates we have already collected
+  //   ackFunction(offerToUpdate.offerIceCandidates);
+  //   offerToUpdate.answer = offerObj.answer;
+  //   offerToUpdate.answererUserName = userName;
+  //   //socket has a .to() which allows emiting to a "room"
+  //   //every socket has it's own room
+  //   socket.to(socketIdToAnswer).emit('answerResponse', offerToUpdate);
+  // });
 
-  socket.on('sendIceCandidateToSignalingServer', (iceCandidateObj) => {
-    const { didIOffer, iceUserName, iceCandidate } = iceCandidateObj;
-    // console.log(iceCandidate);
-    if (didIOffer) {
-      //this ice is coming from the offerer. Send to the answerer
-      const offerInOffers = offers.find(
-        (o) => o.offererUserName === iceUserName
-      );
-      if (offerInOffers) {
-        offerInOffers.offerIceCandidates.push(iceCandidate);
-        // 1. When the answerer answers, all existing ice candidates are sent
-        // 2. Any candidates that come in after the offer has been answered, will be passed through
-        if (offerInOffers.answererUserName) {
-          //pass it through to the other socket
-          const socketToSendTo = connectedSockets.find(
-            (s) => s.userName === offerInOffers.answererUserName
-          );
-          if (socketToSendTo) {
-            socket
-              .to(socketToSendTo.socketId)
-              .emit('receivedIceCandidateFromServer', iceCandidate);
-          } else {
-            console.log('Ice candidate recieved but could not find answere');
-          }
-        }
-      }
-    } else {
-      //this ice is coming from the answerer. Send to the offerer
-      //pass it through to the other socket
-      const offerInOffers = offers.find(
-        (o) => o.answererUserName === iceUserName
-      );
-      const socketToSendTo = connectedSockets.find(
-        (s) => s.userName === offerInOffers.offererUserName
-      );
-      if (socketToSendTo) {
-        socket
-          .to(socketToSendTo.socketId)
-          .emit('receivedIceCandidateFromServer', iceCandidate);
-      } else {
-        console.log('Ice candidate recieved but could not find offerer');
-      }
-    }
-    // console.log(offers)
-  });
+  // socket.on('sendIceCandidateToSignalingServer', (iceCandidateObj) => {
+  //   const { didIOffer, iceUserName, iceCandidate } = iceCandidateObj;
+  //   // console.log(iceCandidate);
+  //   if (didIOffer) {
+  //     //this ice is coming from the offerer. Send to the answerer
+  //     const offerInOffers = offers.find(
+  //       (o) => o.offererUserName === iceUserName
+  //     );
+  //     if (offerInOffers) {
+  //       offerInOffers.offerIceCandidates.push(iceCandidate);
+  //       // 1. When the answerer answers, all existing ice candidates are sent
+  //       // 2. Any candidates that come in after the offer has been answered, will be passed through
+  //       if (offerInOffers.answererUserName) {
+  //         //pass it through to the other socket
+  //         const socketToSendTo = connectedSockets.find(
+  //           (s) => s.userName === offerInOffers.answererUserName
+  //         );
+  //         if (socketToSendTo) {
+  //           socket
+  //             .to(socketToSendTo.socketId)
+  //             .emit('receivedIceCandidateFromServer', iceCandidate);
+  //         } else {
+  //           console.log('Ice candidate recieved but could not find answere');
+  //         }
+  //       }
+  //     }
+  //   } else {
+  //     //this ice is coming from the answerer. Send to the offerer
+  //     //pass it through to the other socket
+  //     const offerInOffers = offers.find(
+  //       (o) => o.answererUserName === iceUserName
+  //     );
+  //     const socketToSendTo = connectedSockets.find(
+  //       (s) => s.userName === offerInOffers.offererUserName
+  //     );
+  //     if (socketToSendTo) {
+  //       socket
+  //         .to(socketToSendTo.socketId)
+  //         .emit('receivedIceCandidateFromServer', iceCandidate);
+  //     } else {
+  //       console.log('Ice candidate recieved but could not find offerer');
+  //     }
+  //   }
+  //   // console.log(offers)
+  // });
 }

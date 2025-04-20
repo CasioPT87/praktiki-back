@@ -3,7 +3,7 @@ import { User } from '../../types/entities';
 import { UsersManager } from '../../services/user/manager';
 import crypto from 'crypto';
 
-enum Connection {
+export enum Connection {
   pending = 'pendig',
   onGoing = 'ongoin',
   finished = 'finished',
@@ -175,11 +175,11 @@ class GlobalPrivateChatsManager {
     if (state === Connection.pending) {
       privateChats = this.privateChatRequests;
       const privateChat = privateChats.find((each) => each.id === id);
-      return privateChat;
+      return privateChat || null;
     } else if (state === Connection.onGoing) {
       privateChats = this.privateChatsOngoing;
       const privateChat = privateChats.find((each) => each.id === id);
-      return privateChat;
+      return privateChat || null;
     }
 
     return null;
