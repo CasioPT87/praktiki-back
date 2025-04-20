@@ -47,3 +47,8 @@ export async function createToken({ user }: { user: User }) {
 export function createRandomUuid() {
   return uuidv4();
 }
+
+export enum UserRole {
+  guest = 10,
+  registered = 20,
+}

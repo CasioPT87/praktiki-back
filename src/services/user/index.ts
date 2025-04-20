@@ -2,16 +2,17 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import pool from '../../db/connection';
-import { User, UserAuth } from '../../types/entities';
+import { Role, User, UserAuth } from '../../types/entities';
+import { UserRole } from '../../utils/auth';
 
 export const registerUser = async ({
   username,
   password,
-  rol = 1,
+  roleValue,
 }: {
   username: string;
   password: string;
-  rol: number;
+  roleValue: UserRole;
 }): Promise<User | null> => {
   const client = await pool.connect();
   try {
@@ -23,15 +24,25 @@ export const registerUser = async ({
     // Find the user by username
     const queryUser = `INSERT INTO "user"("name", "role_id") VALUES($1, $2) RETURNING *;`;
 
-    const newUserResult = await pool.query(queryUser, [username, rol]);
+    const roleResponse = await client.query(
+      'SELECT * FROM role WHERE value = $1',
+      [roleValue]
+    );
+
+    if (!roleResponse?.rows?.[0].id)
+      throw new Error('Error matching role value');
+
+    const roleId = roleResponse?.rows?.[0].id;
+
+    const newUserResult = await client.query(queryUser, [username, roleId]);
     const queryAuth = `INSERT INTO user_auth (user_id, password) VALUES ($1, $2)`;
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = newUserResult.rows[0] as User;
-    await pool.query(queryAuth, [user.id, hashedPassword]);
+    await client.query(queryAuth, [user.id, hashedPassword]);
     await client.query('COMMIT');
 
-    return user;
+    return await getUser({ userId: user.id });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Error logging in');
@@ -71,15 +82,6 @@ export const loginUser = async ({
     const match = await bcrypt.compare(password, user.password);
 
     if (match) {
-      const tokenUser: User = {
-        id: user.id,
-        name: user.name,
-        role_id: user.role_id,
-        created_at: user.created_at,
-        deleted_at: user.deleted_at,
-        updated_at: user.updated_at,
-      };
-
       return user;
     } else {
       throw new Error('Error loging in: wrong password');
@@ -90,9 +92,20 @@ export const loginUser = async ({
   }
 };
 
-export const getUser = async ({ userId }): Promise<User | null> => {
+export const getUser = async ({
+  userId,
+}: {
+  userId: User['id'];
+}): Promise<User | null> => {
   try {
-    const query = 'SELECT * FROM "user" WHERE id = $1 AND deleted_at IS NULL;';
+    const query = `
+    SELECT u.*, r.value
+    FROM "user" u
+    JOIN "role" r
+    ON r.id = u.role_id
+    WHERE u.id = $1
+    AND u.deleted_at IS NULL
+    `;
     const result = await pool.query(query, [userId]);
     if (result.rows.length === 0) throw new Error(`User ${userId} not found`);
     const user: User = result.rows[0];

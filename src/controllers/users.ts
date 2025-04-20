@@ -5,7 +5,7 @@ import {
   loginUser as loginUserService,
   getUser as getUserService,
 } from '../services/user';
-import { createRandomUuid, createToken } from '../utils/auth';
+import { UserRole, createRandomUuid, createToken } from '../utils/auth';
 
 export const registerUser = async (
   req: Request,
@@ -14,7 +14,11 @@ export const registerUser = async (
   try {
     const { username, password } = req.body;
 
-    const user = await registerUserService({ username, password, rol: 1 });
+    const user = await registerUserService({
+      username,
+      password,
+      roleValue: UserRole.registered,
+    });
     if (!user) throw new Error('Error registering new user');
 
     const token = await createToken({ user });
@@ -34,7 +38,11 @@ export const registerGuest = async (
     const username = 'Guest User';
     const password = createRandomUuid();
 
-    const user = await registerUserService({ username, password, rol: 1 });
+    const user = await registerUserService({
+      username,
+      password,
+      roleValue: UserRole.guest,
+    });
     if (!user) throw new Error('Error registering new user');
 
     const token = await createToken({ user });
@@ -79,7 +87,7 @@ export const getUserLogged = async (
       return;
     }
 
-    res.status(200).json({ data: user });
+    res.status(200).json({ user });
   } catch (e) {
     if (e instanceof Error) console.error(e.stack);
     res.status(500).send('Error logging in');

@@ -17,7 +17,7 @@ import { getAllLocationChats } from '../controllers/locationsChats';
 router.post('/users/register', registerUser);
 router.post('/users/login', loginUser);
 router.get('/users/register/guest', registerGuest);
-router.get('/users/:user_id', getUserLogged);
+router.get('/users/logged', getUserLogged);
 
 // Location Routes
 router.get('/location-chats', getAllLocationChats);
