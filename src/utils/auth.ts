@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
 import { User } from '../types/entities';
 import { NextFunction, Request, Response } from 'express';
-import { AuthorisedRequest } from '../types/utilities';
 
 export function getUserFromToken({ token }: { token: string }) {
   try {
@@ -42,4 +42,8 @@ export const authorization = async (
 export async function createToken({ user }: { user: User }) {
   const token = jwt.sign(user, process.env.AUTH_KEY || '');
   return token;
+}
+
+export function createRandomUuid() {
+  return uuidv4();
 }

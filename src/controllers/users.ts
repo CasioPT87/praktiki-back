@@ -5,7 +5,7 @@ import {
   loginUser as loginUserService,
   getUser as getUserService,
 } from '../services/user';
-import { createToken } from '../utils/auth';
+import { createRandomUuid, createToken } from '../utils/auth';
 
 export const registerUser = async (
   req: Request,
@@ -31,13 +31,15 @@ export const registerGuest = async (
   res: Response
 ): Promise<void> => {
   try {
-    const username = 'tiggie flu';
-    const password = 'fliski flu';
+    const username = 'Guest User';
+    const password = createRandomUuid();
 
     const user = await registerUserService({ username, password, rol: 1 });
     if (!user) throw new Error('Error registering new user');
 
-    res.status(200).json({ data: user });
+    const token = await createToken({ user });
+
+    res.status(200).json({ user, token });
     return;
   } catch (err) {
     res.status(500).send('Error logging in');
