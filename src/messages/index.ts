@@ -392,6 +392,17 @@ export default async function messages(io: Server) {
       }
     });
 
+    socket.on('private-chat-message:create', ({ text, privateChatId }) => {
+      if (!text) return;
+      const privateChatRequest = globalPrivateChatsManager.getByIdAndState({
+        id: privateChatId,
+        state: Connection.onGoing,
+      });
+      if (!privateChatRequest) return;
+      const room = privateChatRequest.id;
+      videoIO.to(room).emit('private-chat-message:create', text);
+    });
+
     socket.on(
       'private-chat:accept',
       ({ privateChatId }: { privateChatId: string }) => {
@@ -448,7 +459,7 @@ export default async function messages(io: Server) {
         state: Connection.onGoing,
       });
       if (!privateChatRequest) return;
-      const targetSocketId = privateChatRequest
+      privateChatRequest
         .getSocketFromUserId(privateChatRequest.targetUserId)
         .then((socketToSend) => {
           if (!socketToSend) return;
