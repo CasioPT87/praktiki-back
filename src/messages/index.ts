@@ -30,20 +30,9 @@ async function getUserFromConnection(socket: Socket): Promise<User | null> {
   }
 
   const user = await getUserFromToken({ token });
+  if (!user) throw new Error('Token not valid for any user');
   return user;
 }
-
-//offers will contain {}
-// offererUserName
-// offer
-// offerIceCandidates
-// answererUserName
-// answer
-// answererIceCandidates
-const offers: any = [];
-
-//username, socketId
-const connectedSockets: any = [];
 
 export default async function messages(io: Server) {
   if (process.env.NODE_ENV !== 'test') {
@@ -81,7 +70,7 @@ export default async function messages(io: Server) {
   const globalPrivateChatUsersManager = new UsersManager();
 
   const globalPrivateChatsManager = new GlobalPrivateChatsManager({
-    textIONamespace: textIO,
+    textIONamespace: textIO, // TODO: this is probably not what we want
     videoIONamespace: videoIO,
     usersManager: globalPrivateChatUsersManager,
   });
@@ -93,6 +82,18 @@ export default async function messages(io: Server) {
       return;
     }
 
+    const existingUserManager = globalLocationChatUsersManager.getUserByUserId(
+      user.id
+    );
+    if (existingUserManager) {
+      if (existingUserManager.socketId !== socket.id) {
+        existingUserManager.updateSocketId(socket.id);
+      }
+    } else {
+      const userManager = new UserManager(user.id, socket.id);
+      globalLocationChatUsersManager.addUser(userManager);
+    }
+
     socket.on(
       'location-chat:join',
       async (
@@ -100,12 +101,14 @@ export default async function messages(io: Server) {
         callback
       ) => {
         try {
+          // get the location chat
           const locationChatManager =
             globalLocationChatsManager.getLocationChat(locationChatId);
           if (!locationChatManager) {
             return false;
           }
 
+          // the user abandoms all the other rooms it was in (but its own)
           for (const room of socket.rooms) {
             if (room !== socket.id) {
               socket.leave(room);
@@ -141,7 +144,6 @@ export default async function messages(io: Server) {
                 .emit('location-chat-users:get', users);
             });
           }
-          /* ** */
 
           return callback(true);
         } catch (e) {
@@ -234,14 +236,13 @@ export default async function messages(io: Server) {
     });
 
     socket.on('disconnecting', (reason) => {
-      const existingUserManager = globalLocationChatUsersManager.getUser(
-        user.id
-      );
+      const existingUserManager =
+        globalLocationChatUsersManager.getUserByUserId(user.id);
       // remove user from global users
       if (existingUserManager) {
         globalLocationChatUsersManager.removeUser(existingUserManager.userId);
       }
-      // send message to the people from all rooms indicating all the users in that room (there is one less now)
+      // send message to the all people in all rooms of this socket (it should only be one, but just in case), indicating all the users in that room (there is one less now)
       const rooms = Array.from(socket.rooms);
       rooms.forEach((roomName) => {
         const locationChatManager =
@@ -276,14 +277,6 @@ export default async function messages(io: Server) {
         }
       });
     });
-
-    const existingUserManager = globalLocationChatUsersManager.getUser(user.id);
-    if (existingUserManager) {
-      existingUserManager.updateSocketId(socket.id);
-    } else {
-      const userManager = new UserManager(user.id, socket.id);
-      globalLocationChatUsersManager.addUser(userManager);
-    }
   });
 
   videoIO.on('connection', async (socket) => {
@@ -293,7 +286,9 @@ export default async function messages(io: Server) {
       return;
     }
 
-    const existingUserManager = globalPrivateChatUsersManager.getUser(user.id);
+    const existingUserManager = globalPrivateChatUsersManager.getUserByUserId(
+      user.id
+    );
     if (existingUserManager) {
       existingUserManager.updateSocketId(socket.id);
     } else {
@@ -302,10 +297,11 @@ export default async function messages(io: Server) {
     }
 
     socket.on('disconnecting', (reason) => {
-      const existingUserManager = globalPrivateChatUsersManager.getUser(
+      const existingUserManager = globalPrivateChatUsersManager.getUserByUserId(
         user.id
       );
       // remove user from global users
+      //TODO: destroy conversation here and communicate the other part
       if (existingUserManager) {
         globalPrivateChatUsersManager.removeUser(existingUserManager.userId);
       }
@@ -408,79 +404,4 @@ export default async function messages(io: Server) {
       }
     );
   });
-
-  // // esto pasa cuando un usuario responde una oferta
-  // socket.on('offer:accept', (offerObj, ackFunction) => {
-  //   // encontramos el socket del usuario que hizo la oferta
-  //   const socketToAnswer = connectedSockets.find(
-  //     (s) => s.userName === offerObj.offererUserName
-  //   );
-  //   if (!socketToAnswer) {
-  //     console.log('No matching socket');
-  //     return;
-  //   }
-  //   //we found the matching socket, so we can emit to it!
-  //   const socketIdToAnswer = socketToAnswer.socketId;
-  //   //we find the offer to update so we can emit it
-  //   const offerToUpdate = offers.find(
-  //     (o) => o.offererUserName === offerObj.offererUserName
-  //   );
-  //   if (!offerToUpdate) {
-  //     console.log('No OfferToUpdate');
-  //     return;
-  //   }
-  //   //send back to the answerer all the iceCandidates we have already collected
-  //   ackFunction(offerToUpdate.offerIceCandidates);
-  //   offerToUpdate.answer = offerObj.answer;
-  //   offerToUpdate.answererUserName = userName;
-  //   //socket has a .to() which allows emiting to a "room"
-  //   //every socket has it's own room
-  //   socket.to(socketIdToAnswer).emit('answerResponse', offerToUpdate);
-  // });
-
-  // socket.on('sendIceCandidateToSignalingServer', (iceCandidateObj) => {
-  //   const { didIOffer, iceUserName, iceCandidate } = iceCandidateObj;
-  //   // console.log(iceCandidate);
-  //   if (didIOffer) {
-  //     //this ice is coming from the offerer. Send to the answerer
-  //     const offerInOffers = offers.find(
-  //       (o) => o.offererUserName === iceUserName
-  //     );
-  //     if (offerInOffers) {
-  //       offerInOffers.offerIceCandidates.push(iceCandidate);
-  //       // 1. When the answerer answers, all existing ice candidates are sent
-  //       // 2. Any candidates that come in after the offer has been answered, will be passed through
-  //       if (offerInOffers.answererUserName) {
-  //         //pass it through to the other socket
-  //         const socketToSendTo = connectedSockets.find(
-  //           (s) => s.userName === offerInOffers.answererUserName
-  //         );
-  //         if (socketToSendTo) {
-  //           socket
-  //             .to(socketToSendTo.socketId)
-  //             .emit('receivedIceCandidateFromServer', iceCandidate);
-  //         } else {
-  //           console.log('Ice candidate recieved but could not find answere');
-  //         }
-  //       }
-  //     }
-  //   } else {
-  //     //this ice is coming from the answerer. Send to the offerer
-  //     //pass it through to the other socket
-  //     const offerInOffers = offers.find(
-  //       (o) => o.answererUserName === iceUserName
-  //     );
-  //     const socketToSendTo = connectedSockets.find(
-  //       (s) => s.userName === offerInOffers.offererUserName
-  //     );
-  //     if (socketToSendTo) {
-  //       socket
-  //         .to(socketToSendTo.socketId)
-  //         .emit('receivedIceCandidateFromServer', iceCandidate);
-  //     } else {
-  //       console.log('Ice candidate recieved but could not find offerer');
-  //     }
-  //   }
-  //   // console.log(offers)
-  // });
 }

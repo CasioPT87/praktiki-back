@@ -12,10 +12,6 @@ class UsersManager {
     return false;
   }
 
-  getUser(userId: User['id']): UserManager | null {
-    return this.users.find((each) => each.userId === userId) || null;
-  }
-
   getUserBySocketId(socketId: Socket['id']) {
     return this.users.find((each) => each.socketId === socketId) || null;
   }

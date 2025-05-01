@@ -2,13 +2,17 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '../types/entities';
 import { NextFunction, Request, Response } from 'express';
+import { getUser } from '../services/user';
 
-export function getUserFromToken({ token }: { token: string }) {
+export async function getUserFromToken({ token }: { token: string }) {
   try {
-    const user = jwt.decode(token) as User;
+    if (!token) throw new Error('Token not provided');
+    const { id } = jwt.decode(token) as User;
+    const user = await getUser({ userId: id });
+    if (!user) throw new Error('User not found');
     return user;
   } catch (e) {
-    console.error('User not found');
+    if (e instanceof Error) console.error(e.stack);
     return null;
   }
 }

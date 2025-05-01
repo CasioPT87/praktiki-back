@@ -43,7 +43,7 @@ class PrivateChatManager<T extends Connection> {
   }
 
   async getSocketFromUserId(userId: User['id']) {
-    const userManager = this.usersManager.getUser(userId);
+    const userManager = this.usersManager.getUserByUserId(userId);
     if (userManager) {
       const socketId = userManager.socketId;
       const socket = await this.videoIONamespace.sockets.get(socketId);
@@ -107,7 +107,7 @@ class GlobalPrivateChatsManager {
     if (this.requestExistsAlready({ creatorUserId, targetUserId })) {
       return;
     }
-    const privateChatRequests = await new PrivateChatManager({
+    const privateChatRequest = await new PrivateChatManager({
       creatorUserId,
       targetUserId,
       textIONamespace: this.textIONamespace,
@@ -117,7 +117,7 @@ class GlobalPrivateChatsManager {
     }).create();
     this.privateChatRequests = [
       ...this.privateChatRequests,
-      privateChatRequests,
+      privateChatRequest,
     ];
   }
 
