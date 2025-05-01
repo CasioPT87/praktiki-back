@@ -1,5 +1,5 @@
 import { Namespace } from 'socket.io';
-import { User } from '../../types/entities';
+import { PrivateChatRequest, User } from '../../types/entities';
 import { UsersManager } from '../../services/user/manager';
 import crypto from 'crypto';
 
@@ -13,7 +13,6 @@ class PrivateChatManager<T extends Connection> {
   id: string;
   creatorUserId: User['id'];
   targetUserId: User['id'];
-  textIONamespace: Namespace;
   videoIONamespace: Namespace;
   connected: Connection;
   usersManager: UsersManager;
@@ -21,14 +20,12 @@ class PrivateChatManager<T extends Connection> {
   constructor({
     creatorUserId,
     targetUserId,
-    textIONamespace,
     videoIONamespace,
     connected,
     usersManager,
   }: {
     creatorUserId: User['id'];
     targetUserId: User['id'];
-    textIONamespace: Namespace;
     videoIONamespace: Namespace;
     connected: T;
     usersManager: UsersManager;
@@ -36,7 +33,6 @@ class PrivateChatManager<T extends Connection> {
     this.id = crypto.randomUUID();
     this.creatorUserId = creatorUserId;
     this.targetUserId = targetUserId;
-    this.textIONamespace = textIONamespace;
     this.videoIONamespace = videoIONamespace;
     this.connected = connected;
     this.usersManager = usersManager;
@@ -48,11 +44,10 @@ class PrivateChatManager<T extends Connection> {
       const socketId = userManager.socketId;
       const socket = await this.videoIONamespace.sockets.get(socketId);
       if (!socket) {
-        throw new Error(
-          'socket is not in videoIONamespace for user: ' + userId
-        );
+        console.warn('socket is not in videoIONamespace for user: ' + userId);
+        return null;
       }
-      return socket || null;
+      return socket;
     } else {
       throw new Error('could not find user: ' + userId);
     }
@@ -60,6 +55,12 @@ class PrivateChatManager<T extends Connection> {
 
   async create() {
     const targetUserSocket = await this.getSocketFromUserId(this.targetUserId);
+    if (!targetUserSocket) {
+      console.warn(
+        'could not create request. user target does not exist anymore'
+      );
+      return null;
+    }
     targetUserSocket.emit('private-chat:create', {
       privateChatId: this.id,
       requestCreatorUserId: this.creatorUserId,
@@ -71,28 +72,24 @@ class PrivateChatManager<T extends Connection> {
     this.connected = Connection.onGoing;
   }
 
-  connect() {}
-
-  disconnect() {}
+  finish() {
+    this.connected = Connection.finished;
+  }
 }
 
 class GlobalPrivateChatsManager {
   privateChatRequests: PrivateChatManager<Connection.pending>[] = [];
   privateChatsOngoing: PrivateChatManager<Connection.onGoing>[] = [];
-  textIONamespace: Namespace;
   videoIONamespace: Namespace;
   usersManager: UsersManager;
 
   constructor({
-    textIONamespace,
     videoIONamespace,
     usersManager,
   }: {
-    textIONamespace: Namespace;
     videoIONamespace: Namespace;
     usersManager: UsersManager;
   }) {
-    this.textIONamespace = textIONamespace;
     this.videoIONamespace = videoIONamespace;
     this.usersManager = usersManager;
   }
@@ -110,7 +107,6 @@ class GlobalPrivateChatsManager {
     const privateChatRequest = await new PrivateChatManager({
       creatorUserId,
       targetUserId,
-      textIONamespace: this.textIONamespace,
       videoIONamespace: this.videoIONamespace,
       connected: Connection.pending,
       usersManager: this.usersManager,
@@ -149,12 +145,52 @@ class GlobalPrivateChatsManager {
     this.privateChatRequests = [...privateChatRequests];
   }
 
+  removeOngoing({
+    privateChatOngoing,
+  }: {
+    privateChatOngoing: PrivateChatManager<Connection.onGoing>;
+  }) {
+    let privateChatsOngoing = this.privateChatsOngoing.filter(
+      (chat) => chat.id !== privateChatOngoing.id
+    );
+    this.privateChatsOngoing = [...privateChatsOngoing];
+  }
+
   addOngoing({
     privateChat,
   }: {
     privateChat: PrivateChatManager<Connection.onGoing>;
   }) {
     this.privateChatsOngoing = [...this.privateChatsOngoing, privateChat];
+  }
+
+  getAllPrivateChatsForUserId({
+    userId,
+  }: {
+    userId: User['id'];
+  }): Array<PrivateChatManager<Connection.pending | Connection.onGoing>> {
+    const userRequests = this.privateChatRequests.filter((each) =>
+      [each.creatorUserId, each.targetUserId].includes(userId)
+    );
+    const userOngoing = this.privateChatsOngoing.filter((each) =>
+      [each.creatorUserId, each.targetUserId].includes(userId)
+    );
+    return [...userRequests, ...userOngoing];
+  }
+
+  async finishConnectionsForUserId({ userId }: { userId: User['id'] }) {
+    const connections = this.getAllPrivateChatsForUserId({ userId });
+    await Promise.allSettled(
+      connections.map((conn) => {
+        if (conn.connected === Connection.pending)
+          this.removeRequest({ privateChatRequest: conn });
+        if (conn.connected === Connection.onGoing)
+          this.removeOngoing({ privateChatOngoing: conn });
+        conn.finish();
+      })
+    ).catch((e) => {
+      console.error(e.stack);
+    });
   }
 
   acceptRequest(privateChatId: string) {
@@ -165,7 +201,6 @@ class GlobalPrivateChatsManager {
       this.removeRequest({ privateChatRequest });
       privateChatRequest.accept();
       this.addOngoing({ privateChat: privateChatRequest });
-      privateChatRequest.connect();
       return privateChatRequest;
     }
   }

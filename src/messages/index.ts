@@ -30,7 +30,7 @@ async function getUserFromConnection(socket: Socket): Promise<User | null> {
   }
 
   const user = await getUserFromToken({ token });
-  if (!user) throw new Error('Token not valid for any user');
+  if (!user) return null;
   return user;
 }
 
@@ -70,7 +70,6 @@ export default async function messages(io: Server) {
   const globalPrivateChatUsersManager = new UsersManager();
 
   const globalPrivateChatsManager = new GlobalPrivateChatsManager({
-    textIONamespace: textIO, // TODO: this is probably not what we want
     videoIONamespace: videoIO,
     usersManager: globalPrivateChatUsersManager,
   });
@@ -296,15 +295,79 @@ export default async function messages(io: Server) {
       globalPrivateChatUsersManager.addUser(userManager);
     }
 
-    socket.on('disconnecting', (reason) => {
+    enum DisconnectionReason {
+      controlled = 'controlled',
+      uncontrolled = 'uncontrolled',
+    }
+
+    async function closeConnectionByUser({
+      reason,
+    }: {
+      reason: DisconnectionReason;
+    }) {
+      if (!user) return;
       const existingUserManager = globalPrivateChatUsersManager.getUserByUserId(
         user.id
       );
-      // remove user from global users
-      //TODO: destroy conversation here and communicate the other part
+      // get users connections:
+      const privateChats =
+        globalPrivateChatsManager.getAllPrivateChatsForUserId({
+          userId: user.id,
+        });
+
+      // desc
+      await Promise.allSettled(
+        privateChats.map((pc) => {
+          // id de la room
+          const privateChatId = pc.id;
+          // id del otro usuario
+          const userIdToMessage =
+            pc.creatorUserId === user.id ? pc.targetUserId : pc.creatorUserId;
+          const existingOtherUserManager =
+            globalPrivateChatUsersManager.getUserByUserId(user.id);
+          if (existingOtherUserManager) {
+            // sacamos al otro usuario del global users manager
+            globalPrivateChatUsersManager.removeUser(
+              existingOtherUserManager.userId
+            );
+          }
+
+          pc.getSocketFromUserId(userIdToMessage).then((socket) => {
+            // sacamos de la room al socket del "otro" de la conexion
+            if (socket) socket.leave(privateChatId);
+          });
+
+          // mandamos a la room que se ha desconectado y quien ha sido
+          videoIO
+            .to(privateChatId)
+            .emit('private-chat:disconnected', { user: user.id, reason });
+        })
+      );
+
+      // quitamos la conexion
+      await globalPrivateChatsManager.finishConnectionsForUserId({
+        userId: user.id,
+      });
+
       if (existingUserManager) {
         globalPrivateChatUsersManager.removeUser(existingUserManager.userId);
       }
+    }
+
+    socket.once('disconnecting', async (reason) => {
+      async () => {
+        try {
+          await closeConnectionByUser({
+            reason: DisconnectionReason.uncontrolled,
+          });
+        } catch (e) {
+          if (e instanceof Error) console.error(e.stack);
+        }
+      };
+    });
+
+    socket.on('error', (err) => {
+      socket.disconnect();
     });
 
     socket.on(
@@ -320,6 +383,14 @@ export default async function messages(io: Server) {
         }
       }
     );
+
+    socket.on('private-chat:end', async () => {
+      try {
+        await closeConnectionByUser({ reason: DisconnectionReason.controlled });
+      } catch (e) {
+        if (e instanceof Error) console.error(e.stack);
+      }
+    });
 
     socket.on(
       'private-chat:accept',
@@ -338,6 +409,10 @@ export default async function messages(io: Server) {
           const creatorSocket = videoIO.sockets.get(creator.socketId);
           const targetSocket = videoIO.sockets.get(target.socketId);
           if (!creatorSocket || !targetSocket) return;
+
+          creatorSocket.join(privateChatId);
+          targetSocket.join(privateChatId);
+
           creatorSocket.emit('private-chat:start', {
             creator: true,
             target: false,
@@ -347,6 +422,19 @@ export default async function messages(io: Server) {
             creator: false,
             target: true,
             privateChatId,
+          });
+
+          let countdownToExtinction = setTimeout(() => {
+            closeConnectionByUser({ reason: DisconnectionReason.uncontrolled });
+          }, 30_000);
+
+          socket.on('heartbeat', () => {
+            clearTimeout(countdownToExtinction);
+            countdownToExtinction = setTimeout(() => {
+              closeConnectionByUser({
+                reason: DisconnectionReason.uncontrolled,
+              });
+            }, 30_000);
           });
         } catch (e) {
           if (e instanceof Error) console.error(e.stack);
