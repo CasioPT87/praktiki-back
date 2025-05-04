@@ -1,10 +1,5 @@
 // src/controllers/userController.ts
 import { Request, Response } from 'express';
-import {
-  registerUser as registerUserService,
-  loginUser as loginUserService,
-  getUser as getUserService,
-} from '../services/user';
 import { ListManager } from '../redis';
 
 export const joinQueue = async (req: Request, res: Response): Promise<void> => {
@@ -13,13 +8,26 @@ export const joinQueue = async (req: Request, res: Response): Promise<void> => {
     if (!languageCombinationId || !Number.isInteger(languageCombinationId))
       throw new Error('Not valid language combiantion');
     const listManager = new ListManager({ languageCombinationId });
+    const userId = req.user?.id || null;
+    if (!userId) throw new Error('Not valid user found');
 
-    if (!user) {
-      res.status(403).send('User not found');
-      return;
+    const usersInList = await listManager.getAllFromList();
+
+    if (Array.isArray(usersInList) && usersInList.length > 0) {
+      const userIdToConnect = usersInList[0];
+      await listManager.removeFromList(userIdToConnect);
+
+      res.status(200).json({
+        status: 'connect',
+        connectTo: userIdToConnect,
+      });
+    } else {
+      await listManager.addToList(userId);
+      res.status(200).json({
+        status: 'waiting',
+        connectTo: null,
+      });
     }
-
-    res.status(200).json({ user });
   } catch (e) {
     if (e instanceof Error) console.error(e.stack);
     res.status(500).send('Error logging in');
