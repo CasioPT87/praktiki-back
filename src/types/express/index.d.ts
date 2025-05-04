@@ -1,5 +1,8 @@
+import { GlobalPrivateChatsManager } from '../../managers/call';
+import { LocationChatsManager } from '../../services/locationChat/manager';
+import { UsersManager } from '../../services/user/manager';
 import { User } from '../entities';
-import { Server } from 'socket.io';
+import { Namespace, Server } from 'socket.io';
 
 declare global {
   namespace Express {
@@ -8,6 +11,13 @@ declare global {
     }
   }
   var io: Server; // This will make `io` globally available
+  var globalPrivateChatUsersManager: UsersManager;
+  var globalLocationChatUsersManager: UsersManager;
+  var globalLocationChatsManager: LocationChatsManager;
+  var globalPrivateChatsManager: GlobalPrivateChatsManager;
+
+  var videoIO: Namespace;
+  var textIO: Namespace;
 }
 
 export {};
