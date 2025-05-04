@@ -1,11 +1,8 @@
 import { createClient, RedisClientType } from 'redis';
 
-type Connection = RedisClientType | void;
-type ConnectionService = Promise<Connection> | void;
-
-function connection(this: RedisService): ConnectionService {
+function connection(this: RedisService): Promise<null | RedisClientType> {
   // Cuando ejecutamos tests no queremos conectarnos a redis
-  if (process.env.NODE_ENV === 'test') return;
+  if (process.env.NODE_ENV === 'test') return Promise.resolve(null);
 
   return createClient({
     url: 'redis://default:PrakTiki34@cache:6369',
@@ -27,6 +24,7 @@ function connection(this: RedisService): ConnectionService {
     })
     .catch((err: Error) => {
       console.error(err.stack);
+      return null;
     });
 }
 
@@ -36,8 +34,8 @@ type ConnectionOptions = {
 
 class RedisService {
   client: RedisClientType | null;
-  connectionProcess: ConnectionService | null;
-  connection: () => ConnectionService;
+  connectionProcess: Promise<null | RedisClientType> | null;
+  connection: () => Promise<null | RedisClientType>;
   status: 'not-ready' | 'ready' | 'error';
 
   constructor() {
@@ -48,7 +46,7 @@ class RedisService {
     this.getClient();
   }
 
-  getClient(options: ConnectionOptions = {}): ConnectionService | Connection {
+  getClient(options: ConnectionOptions = {}) {
     const { forceNewConnection } = options;
 
     // Si queremos forzar obtener un cliente nuevo de Redis

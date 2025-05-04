@@ -1,9 +1,11 @@
+import { RedisClientType } from 'redis';
 import { PlainObject } from '../types/entities/versatile';
 
 import redisService from './connector';
+import { User } from '../types/entities';
 
-class Cache {
-  cache: any;
+export class Cache {
+  cache: RedisClientType | null = null;
 
   constructor() {
     if (this.shouldConnect) {
@@ -31,12 +33,12 @@ class Cache {
     value: string | number | boolean | PlainObject
   ) {
     if (!this.cache || !redisService.isReady) {
-      return value;
+      return null;
     }
 
     await this.cache.set(key, JSON.stringify(value), {
       EX: cache_ttl,
-      NX: true,
+      NX: true, // only set the key if it does Not eXists
     });
 
     return value;
@@ -74,25 +76,7 @@ class Cache {
     return result;
   }
 
-  async del(key: string) {
-    await this.cache.del(key);
-  }
-
-  async allKeys() {
-    const uniqueKeys = new Set();
-    for await (const key of this.cache.scanIterator()) {
-      const keyName = key.split(':')[1];
-      uniqueKeys.add(keyName);
-    }
-    return Array.from(uniqueKeys);
-  }
-
-  async flush() {
-    const result = await this.cache.sendCommand(['FLUSHALL']);
-    return { flushed: result === 'OK' };
-  }
-
-  async deleteKey(key = '') {
+  async delete(key = '') {
     if (!this.cache) {
       return { deleted: false };
     }
@@ -106,4 +90,40 @@ class Cache {
   }
 }
 
-export default new Cache();
+export class ListManager {
+  prefix = 'language-manager-list-';
+  client: RedisClientType | null = null;
+  name: string = '';
+
+  constructor({ languageCombinationId }: { languageCombinationId: number }) {
+    if (this.shouldConnect) {
+      this.connect();
+      this.name = this.prefix + languageCombinationId;
+    } else {
+      console.warn(
+        '👾👾👾👾 List Manager deshabilitado (entorno test), no conectamos 👾👾👾👾'
+      );
+    }
+  }
+
+  get shouldConnect() {
+    return process.env.NODE_ENV !== 'test';
+  }
+
+  async connect() {
+    const client = await redisService.getClient();
+    this.client = client;
+  }
+
+  async addToList(userId: User['id']) {
+    await this.client?.sAdd(this.name, String(userId));
+  }
+
+  async removeFromList(userId: User['id']) {
+    await this.client?.sRem(this.name, String(userId));
+  }
+
+  async getAllFromList() {
+    await this.client?.sMembers(this.name);
+  }
+}
