@@ -26,7 +26,7 @@ const port = 3022;
 // Setup Middleware
 app.use(
   cors({
-    origin: ['https://localhost:8080', 'https://192.168.1.130:8080'],
+    origin: ['https://localhost:8080', 'https://192.168.1.129:8080'],
     credentials: true,
   })
 ); // Enable Cross-Origin Resource Sharing

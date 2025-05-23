@@ -12,6 +12,7 @@ import {
 } from '../controllers/users';
 
 import { getAllLocationChats } from '../controllers/locationsChats';
+import { joinQueue } from '../controllers/randomVideoConversation';
 
 // User Routes
 router.post('/users/register', registerUser);
@@ -21,5 +22,8 @@ router.get('/users/logged', getUserLogged);
 
 // Location Routes
 router.get('/location-chats', getAllLocationChats);
+
+// queue Routes
+router.get('/random-queue/join/:combination', joinQueue);
 
 export default router;
