@@ -1,39 +1,43 @@
+import { Namespace } from 'socket.io';
 import { Connection } from '../../../managers/call';
 import { PrivateChat } from '../../../types/entities';
 import { DisconnectionReason } from './videoChat';
 
-const accept = ({ privateChatId }: { privateChatId: string }) => {
-  try {
-    const privateChatRequest =
-      globalPrivateChatsManager.acceptRequest(privateChatId);
-    if (!privateChatRequest) return;
-    const creatorUserId = privateChatRequest.creatorUserId;
-    const targetUserId = privateChatRequest.targetUserId;
-    const creator =
-      globalPrivateChatUsersManager.getUserByUserId(creatorUserId);
-    const target = globalPrivateChatUsersManager.getUserByUserId(targetUserId);
-    if (!creator || !target) return;
-    const creatorSocket = videoIO.sockets.get(creator.socketId);
-    const targetSocket = videoIO.sockets.get(target.socketId);
-    if (!creatorSocket || !targetSocket) return;
+const accept =
+  (videoIO: Namespace) =>
+  ({ privateChatId }: { privateChatId: string }) => {
+    try {
+      const privateChatRequest =
+        globalPrivateChatsManager.acceptRequest(privateChatId);
+      if (!privateChatRequest) return;
+      const creatorUserId = privateChatRequest.creatorUserId;
+      const targetUserId = privateChatRequest.targetUserId;
+      const creator =
+        globalPrivateChatUsersManager.getUserByUserId(creatorUserId);
+      const target =
+        globalPrivateChatUsersManager.getUserByUserId(targetUserId);
+      if (!creator || !target) return;
+      const creatorSocket = videoIO.sockets.get(creator.socketId);
+      const targetSocket = videoIO.sockets.get(target.socketId);
+      if (!creatorSocket || !targetSocket) return;
 
-    creatorSocket.join(privateChatId);
-    targetSocket.join(privateChatId);
+      creatorSocket.join(privateChatId);
+      targetSocket.join(privateChatId);
 
-    creatorSocket.emit('private-chat:start', {
-      creator: true,
-      target: false,
-      privateChatId,
-    });
-    targetSocket.emit('private-chat:start', {
-      creator: false,
-      target: true,
-      privateChatId,
-    });
-  } catch (e) {
-    if (e instanceof Error) console.error(e.stack);
-  }
-};
+      creatorSocket.emit('private-chat:start', {
+        creator: true,
+        target: false,
+        privateChatId,
+      });
+      targetSocket.emit('private-chat:start', {
+        creator: false,
+        target: true,
+        privateChatId,
+      });
+    } catch (e) {
+      if (e instanceof Error) console.error(e.stack);
+    }
+  };
 
 export const createdOffer = ({
   offer,

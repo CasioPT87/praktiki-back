@@ -175,7 +175,10 @@ export default async function messages(io: Server) {
       'private-chat-message:create',
       videoChatController.createMessage(videoIO)
     );
-    socket.on('private-chat:accept', videoChatConnectionController.accept);
+    socket.on(
+      'private-chat:accept',
+      videoChatConnectionController.accept(videoIO)
+    );
     socket.on('offer:create', videoChatConnectionController.createdOffer);
     socket.on('offer:answer', videoChatConnectionController.answerOffer);
     socket.on(
