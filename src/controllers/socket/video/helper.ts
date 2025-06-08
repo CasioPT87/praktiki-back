@@ -1,12 +1,15 @@
+import { Namespace } from 'socket.io';
 import { User } from '../../../types/entities';
 import { DisconnectionReason } from './videoChat';
 
 export async function closeConnectionByUser({
   reason,
   user,
+  videoIO,
 }: {
   reason: DisconnectionReason;
   user: User;
+  videoIO: Namespace;
 }) {
   if (!user) return;
   const existingUserManager = globalPrivateChatUsersManager.getUserByUserId(

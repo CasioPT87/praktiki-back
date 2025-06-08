@@ -1,3 +1,4 @@
+import { Namespace } from 'socket.io';
 import { Connection } from '../../../managers/call';
 import { User } from '../../../types/entities';
 import { closeConnectionByUser } from './helper';
@@ -7,11 +8,12 @@ export enum DisconnectionReason {
   uncontrolled = 'uncontrolled',
 }
 
-export const onDisconnecting = (user: User) => async () => {
+export const onDisconnecting = (user: User, videoIO: Namespace) => async () => {
   try {
     await closeConnectionByUser({
       user,
       reason: DisconnectionReason.uncontrolled,
+      videoIO,
     });
   } catch (e) {
     if (e instanceof Error) console.error(e.stack);
@@ -31,33 +33,30 @@ export const create =
     }
   };
 
-const end = (user: User) => async () => {
+const end = (user: User, videoIO: Namespace) => async () => {
   try {
     await closeConnectionByUser({
       user,
       reason: DisconnectionReason.controlled,
+      videoIO,
     });
   } catch (e) {
     if (e instanceof Error) console.error(e.stack);
   }
 };
 
-export const createMessage = ({
-  text,
-  privateChatId,
-}: {
-  text: string;
-  privateChatId: string;
-}) => {
-  if (!text) return;
-  const privateChatRequest = globalPrivateChatsManager.getByIdAndState({
-    id: privateChatId,
-    state: Connection.onGoing,
-  });
-  if (!privateChatRequest) return;
-  const room = privateChatRequest.id;
-  videoIO.to(room).emit('private-chat-message:create', text);
-};
+export const createMessage =
+  (videoIO: Namespace) =>
+  ({ text, privateChatId }: { text: string; privateChatId: string }) => {
+    if (!text) return;
+    const privateChatRequest = globalPrivateChatsManager.getByIdAndState({
+      id: privateChatId,
+      state: Connection.onGoing,
+    });
+    if (!privateChatRequest) return;
+    const room = privateChatRequest.id;
+    videoIO.to(room).emit('private-chat-message:create', text);
+  };
 
 export default {
   onDisconnecting,

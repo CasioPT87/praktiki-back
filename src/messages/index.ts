@@ -144,6 +144,7 @@ export default async function messages(io: Server) {
       videoChatHelper.closeConnectionByUser({
         user,
         reason: DisconnectionReason.uncontrolled,
+        videoIO,
       });
     }, 30_000);
 
@@ -153,20 +154,27 @@ export default async function messages(io: Server) {
         videoChatHelper.closeConnectionByUser({
           user,
           reason: DisconnectionReason.uncontrolled,
+          videoIO,
         });
       }, 30_000);
     });
     //
 
-    socket.once('disconnecting', videoChatController.onDisconnecting(user));
+    socket.once(
+      'disconnecting',
+      videoChatController.onDisconnecting(user, videoIO)
+    );
 
     socket.on('error', (err) => {
       socket.disconnect();
     });
 
     socket.on('private-chat:create', videoChatController.create(user));
-    socket.on('private-chat:end', videoChatController.end(user));
-    socket.on('private-chat-message:create', videoChatController.createMessage);
+    socket.on('private-chat:end', videoChatController.end(user, videoIO));
+    socket.on(
+      'private-chat-message:create',
+      videoChatController.createMessage(videoIO)
+    );
     socket.on('private-chat:accept', videoChatConnectionController.accept);
     socket.on('offer:create', videoChatConnectionController.createdOffer);
     socket.on('offer:answer', videoChatConnectionController.answerOffer);
