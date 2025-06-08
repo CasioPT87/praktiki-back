@@ -105,7 +105,7 @@ export default async function messages(io: Server) {
     );
     socket.on(
       'location-chat-message:create',
-      locationChatController.createMessage(socket, user)
+      locationChatController.createMessage(socket, user, textIO)
     );
     socket.on(
       'location-chat-messages:get',
@@ -113,11 +113,11 @@ export default async function messages(io: Server) {
     );
     socket.on(
       'location-chat-users:get',
-      locationChatController.getLocationChatRoomUsers(socket)
+      locationChatController.getLocationChatRoomUsers(socket, textIO)
     );
     socket.on(
       'disconnecting',
-      locationChatController.onDisconnecting(socket, user)
+      locationChatController.onDisconnecting(socket, user, textIO)
     );
   });
 
