@@ -15,9 +15,6 @@ declare global {
   var globalLocationChatUsersManager: UsersManager;
   var globalLocationChatsManager: LocationChatsManager;
   var globalPrivateChatsManager: GlobalPrivateChatsManager;
-
-  var videoIO: Namespace;
-  var textIO: Namespace;
 }
 
 export {};

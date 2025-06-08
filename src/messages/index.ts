@@ -56,8 +56,8 @@ export default async function messages(io: Server) {
     io.adapter(createAdapter(redisClientPub, redisClientSub));
   }
 
-  textIO = io.of(TEXT_NAMESPACE);
-  videoIO = io.of(VIDEO_NAMESPACE);
+  const textIO = io.of(TEXT_NAMESPACE);
+  const videoIO = io.of(VIDEO_NAMESPACE);
 
   global.globalLocationChatsManager = new LocationChatsManager(textIO);
 
@@ -73,7 +73,6 @@ export default async function messages(io: Server) {
 
   textIO.on('connection', async (socket) => {
     const user = await getUserFromConnection(socket);
-    console.log('user');
     if (!user) {
       socket.disconnect();
       return;
@@ -97,6 +96,7 @@ export default async function messages(io: Server) {
         { locationChatId }: { locationChatId: LocationChat['id'] },
         callback
       ) => {
+        console.log('join');
         const result = await locationChatController.join(socket)({
           locationChatId,
         });

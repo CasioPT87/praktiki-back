@@ -11,6 +11,7 @@ const join =
   (socket: Socket) =>
   async ({ locationChatId }: { locationChatId: LocationChat['id'] }) => {
     try {
+      console.log('join');
       // get the location chat
       const locationChatManager =
         globalLocationChatsManager.getLocationChat(locationChatId);
@@ -49,7 +50,7 @@ const join =
             }
           })
         ).then((users) => {
-          textIO
+          socket
             .to(locationChatManager.name)
             .emit('location-chat-users:get', users);
         });
@@ -67,6 +68,7 @@ const join =
 const createMessage =
   (socket: Socket, user: User) =>
   ({ message }: { message: LocationChatClientMessage }) => {
+    console.log('create message');
     const locationChatManager =
       globalLocationChatsManager.getLocationChatByConnectedSocketId(socket.id);
     if (locationChatManager) {
@@ -80,7 +82,7 @@ const createMessage =
           content: locationChatMessage.text,
           created: locationChatMessage.created_at,
         };
-        textIO
+        socket
           .to(locationChatManager.name)
           .emit('location-chat-message:get', parsedData);
       });
@@ -88,6 +90,7 @@ const createMessage =
   };
 
 const getMessages = (socket: Socket) => () => {
+  console.log('get messages');
   const locationChatManager =
     globalLocationChatsManager.getLocationChatByConnectedSocketId(socket.id);
   if (locationChatManager) {
@@ -109,6 +112,7 @@ const getMessages = (socket: Socket) => () => {
 };
 
 const getLocationChatRoomUsers = (socket: Socket) => () => {
+  console.log('getLocationChatRoomUsers');
   const locationChatManager =
     globalLocationChatsManager.getLocationChatByConnectedSocketId(socket.id);
   if (locationChatManager) {
@@ -138,6 +142,7 @@ const getLocationChatRoomUsers = (socket: Socket) => () => {
 };
 
 const onDisconnecting = (socket: Socket, user: User) => () => {
+  console.log('onDisconnecting');
   const existingUserManager = globalLocationChatUsersManager.getUserByUserId(
     user.id
   );
@@ -172,7 +177,7 @@ const onDisconnecting = (socket: Socket, user: User) => () => {
           })
         ).then((users) => {
           const filteredUsers = users.filter(Boolean);
-          textIO
+          socket
             .to(locationChatManager.name)
             .emit('location-chat-users:get', filteredUsers);
         });
