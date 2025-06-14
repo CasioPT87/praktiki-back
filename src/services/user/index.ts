@@ -1,18 +1,20 @@
-// src/controllers/userController.ts
-import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import pool from '../../db/connection';
-import { Role, User, UserAuth } from '../../types/entities';
+import { Language, Role, User, UserAuth } from '../../types/entities';
 import { UserRole } from '../../utils/auth';
 
 export const registerUser = async ({
   username,
   password,
   roleValue,
+  fluentLanguageId,
+  practiceLanguageId,
 }: {
   username: string;
   password: string;
   roleValue: UserRole;
+  fluentLanguageId: Language['id'];
+  practiceLanguageId: Language['id'];
 }): Promise<User | null> => {
   const client = await pool.connect();
   try {
@@ -40,6 +42,14 @@ export const registerUser = async ({
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = newUserResult.rows[0] as User;
     await client.query(queryAuth, [user.id, hashedPassword]);
+
+    const queryChosenLanguages = `INSERT INTO user_chosen_languages (user_id, language_1_id, language_2_id) VALUES ($1, $2, $3)`;
+    await client.query(queryChosenLanguages, [
+      user.id,
+      fluentLanguageId,
+      practiceLanguageId,
+    ]);
+
     await client.query('COMMIT');
 
     return await getUser({ userId: user.id });
@@ -99,10 +109,12 @@ export const getUser = async ({
 }): Promise<User | null> => {
   try {
     const query = `
-    SELECT u.*, r.value
+    SELECT u.*, r.value, ucl.language_1_id AS fluent_language_id, ucl.language_2_id AS practice_language_id
     FROM "user" u
     JOIN "role" r
     ON r.id = u.role_id
+    JOIN "user_chosen_languages" ucl
+    ON ucl.user_id = u.role_id
     WHERE u.id = $1
     AND u.deleted_at IS NULL
     `;

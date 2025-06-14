@@ -13,11 +13,21 @@ export const registerUser = async (
 ): Promise<void> => {
   try {
     const { username, password } = req.body;
+    const { fluentLanguageId, practiceLanguageId } = req.body;
+
+    if (
+      !fluentLanguageId ||
+      !practiceLanguageId ||
+      Number(fluentLanguageId) === Number(practiceLanguageId)
+    )
+      throw new Error('Chosen languages are not valid');
 
     const user = await registerUserService({
       username,
       password,
       roleValue: UserRole.registered,
+      fluentLanguageId,
+      practiceLanguageId,
     });
     if (!user) throw new Error('Error registering new user');
 
@@ -37,11 +47,21 @@ export const registerGuest = async (
   try {
     const username = 'Guest User';
     const password = createRandomUuid();
+    const { fluentLanguageId, practiceLanguageId } = req.body;
+
+    if (
+      !fluentLanguageId ||
+      !practiceLanguageId ||
+      Number(fluentLanguageId) === Number(practiceLanguageId)
+    )
+      throw new Error('Chosen languages are not valid');
 
     const user = await registerUserService({
       username,
       password,
       roleValue: UserRole.guest,
+      fluentLanguageId,
+      practiceLanguageId,
     });
     if (!user) throw new Error('Error registering new user');
 

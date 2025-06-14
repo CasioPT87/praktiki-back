@@ -6,6 +6,7 @@ export async function up(knex) {
   await knex.schema.createTable('user', (table) => {
     table.increments('id').primary(); // Primary key
 
+    table.string('name').notNullable();
     table.integer('role_id').unsigned().notNullable();
     table.foreign('role_id').references('id').inTable('role'); // Cascade delete
 
