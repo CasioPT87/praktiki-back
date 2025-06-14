@@ -31,25 +31,10 @@ export const createLanguage = async (
 };
 
 // 2. Get all languages
-export const getAllLanguages = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  const query = 'SELECT * FROM languages WHERE deleted_at IS NULL;';
-
-  try {
-    const result = await pool.query(query);
-    const languages: Language[] = result.rows;
-    res.status(200).json(languages);
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error('Error fetching languages:', error.message);
-      res.status(500).json({ message: error.message });
-    } else {
-      console.error('An unknown error occurred:', error);
-      res.status(500).json({ message: 'An unknown error occurred' });
-    }
-  }
+export const getAllLanguages = async (): Promise<Array<any>> => {
+  const query = 'SELECT * FROM language WHERE deleted_at IS NULL;';
+  const result = await pool.query(query);
+  return result?.rows || null;
 };
 
 // 3. Get language by ID
