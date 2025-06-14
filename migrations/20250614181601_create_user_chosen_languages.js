@@ -1,4 +1,4 @@
-export const up = function (knex) {
+export const up = async function (knex) {
   return knex.schema.createTable('user_chosen_languages', function (table) {
     table.increments('id').primary();
 
@@ -27,6 +27,6 @@ export const up = function (knex) {
   });
 };
 
-export const down = function (knex) {
+export const down = async function (knex) {
   return knex.schema.dropTable('user_chosen_languages');
 };
