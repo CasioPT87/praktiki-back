@@ -159,13 +159,6 @@ export default async function messages(io: Server) {
 
     socket.on('private-chat:create', videoChatController.create(user));
     socket.on('private-chat:end', videoChatController.end(user, videoIO));
-    socket.on('private-chat:leave', () => {
-      videoChatHelper.closeConnectionByUser({
-        user,
-        reason: DisconnectionReason.uncontrolled,
-        videoIO,
-      });
-    });
     socket.on(
       'private-chat-message:create',
       videoChatController.createMessage(videoIO)
