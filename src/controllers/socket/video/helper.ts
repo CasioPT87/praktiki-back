@@ -2,7 +2,7 @@ import { Namespace } from 'socket.io';
 import { User } from '../../../types/entities';
 import { DisconnectionReason } from './videoChat';
 
-export async function closeConnectionByUser({
+export async function endPrivateChat({
   reason,
   user,
   videoIO,
@@ -31,14 +31,6 @@ export async function closeConnectionByUser({
       // id del otro usuario
       const userIdToMessage =
         pc.creatorUserId === user.id ? pc.targetUserId : pc.creatorUserId;
-      const existingOtherUserManager =
-        globalPrivateChatUsersManager.getUserByUserId(user.id);
-      if (existingOtherUserManager) {
-        // sacamos al otro usuario del global users manager
-        globalPrivateChatUsersManager.removeUser(
-          existingOtherUserManager.userId
-        );
-      }
 
       pc.getSocketFromUserId(userIdToMessage).then((socket) => {
         // sacamos de la room al socket del "otro" de la conexion
@@ -56,12 +48,8 @@ export async function closeConnectionByUser({
   await globalPrivateChatsManager.finishConnectionsForUserId({
     userId: user.id,
   });
-
-  if (existingUserManager) {
-    globalPrivateChatUsersManager.removeUser(existingUserManager.userId);
-  }
 }
 
 export default {
-  closeConnectionByUser,
+  endPrivateChat,
 };

@@ -1,7 +1,7 @@
 import { Namespace } from 'socket.io';
 import { Connection } from '../../../managers/call';
 import { User } from '../../../types/entities';
-import { closeConnectionByUser } from './helper';
+import { endPrivateChat } from './helper';
 
 export enum DisconnectionReason {
   controlled = 'controlled',
@@ -10,11 +10,17 @@ export enum DisconnectionReason {
 
 export const onDisconnecting = (user: User, videoIO: Namespace) => async () => {
   try {
-    await closeConnectionByUser({
+    await endPrivateChat({
       user,
       reason: DisconnectionReason.uncontrolled,
       videoIO,
     });
+    const existingOtherUserManager =
+      globalPrivateChatUsersManager.getUserByUserId(user.id);
+    if (existingOtherUserManager) {
+      // sacamos al otro usuario del global users manager
+      globalPrivateChatUsersManager.removeUser(existingOtherUserManager.userId);
+    }
   } catch (e) {
     if (e instanceof Error) console.error(e.stack);
   }
@@ -36,7 +42,7 @@ export const create =
 
 const end = (user: User, videoIO: Namespace) => async () => {
   try {
-    await closeConnectionByUser({
+    await endPrivateChat({
       user,
       reason: DisconnectionReason.controlled,
       videoIO,
