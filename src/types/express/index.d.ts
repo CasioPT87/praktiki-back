@@ -1,4 +1,5 @@
 import { GlobalPrivateChatsManager } from '../../managers/call';
+import { RandomQueueChatManager } from '../../managers/randomQueue';
 import { LocationChatsManager } from '../../services/locationChat/manager';
 import { UsersManager } from '../../services/user/manager';
 import { User } from '../entities';
@@ -15,6 +16,7 @@ declare global {
   var globalLocationChatUsersManager: UsersManager;
   var globalLocationChatsManager: LocationChatsManager;
   var globalPrivateChatsManager: GlobalPrivateChatsManager;
+  var globarRandomChatQueue: RandomQueueChatManager;
 }
 
 export {};

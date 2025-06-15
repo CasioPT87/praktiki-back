@@ -1,7 +1,5 @@
 import { Namespace } from 'socket.io';
 import { Connection } from '../../../managers/call';
-import { PrivateChat } from '../../../types/entities';
-import { DisconnectionReason } from './videoChat';
 
 const accept =
   (videoIO: Namespace) =>

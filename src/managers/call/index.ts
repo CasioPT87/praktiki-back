@@ -222,4 +222,4 @@ class GlobalPrivateChatsManager {
   }
 }
 
-export { GlobalPrivateChatsManager };
+export { GlobalPrivateChatsManager, PrivateChatManager };
