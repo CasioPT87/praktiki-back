@@ -5,7 +5,10 @@
 export async function seed(knex) {
   await deleteSeed(knex);
 
-  await knex('role').insert([{ id: 1, value: 10, name: 'user' }]);
+  await knex('role').insert([
+    { id: 1, value: 10, name: 'guest-user' },
+    { id: 2, value: 20, name: 'registered-user' },
+  ]);
 }
 
 async function deleteSeed(knex) {

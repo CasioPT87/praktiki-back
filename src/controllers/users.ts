@@ -13,7 +13,9 @@ export const registerUser = async (
 ): Promise<void> => {
   try {
     const { username, password } = req.body;
-    const { fluentLanguageId, practiceLanguageId } = req.body;
+    const {
+      chosenLanguages: { fluentLanguageId, practiceLanguageId },
+    } = req.body;
 
     if (
       !fluentLanguageId ||
