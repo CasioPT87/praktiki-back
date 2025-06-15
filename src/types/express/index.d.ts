@@ -16,7 +16,6 @@ declare global {
   var globalLocationChatUsersManager: UsersManager;
   var globalLocationChatsManager: LocationChatsManager;
   var globalPrivateChatsManager: GlobalPrivateChatsManager;
-  var globarRandomChatQueue: RandomQueueChatManager;
 }
 
 export {};

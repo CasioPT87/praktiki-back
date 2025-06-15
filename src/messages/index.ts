@@ -12,6 +12,7 @@ import videoChatController, {
 import videoChatHelper from '../controllers/socket/video/helper';
 import videoChatConnectionController from '../controllers/socket/video/videoConnection';
 import locationChatController from '../controllers/socket/locationChat/locationChat';
+import { RandomQueueChatManager } from '../managers/randomQueue';
 
 const TEXT_NAMESPACE = '/text';
 const VIDEO_NAMESPACE = '/video';
@@ -70,6 +71,8 @@ export default async function messages(io: Server) {
     videoIONamespace: videoIO,
     usersManager: globalPrivateChatUsersManager,
   });
+
+  const randomChatQueueManager = new RandomQueueChatManager();
 
   textIO.on('connection', async (socket) => {
     const user = await getUserFromConnection(socket);
@@ -172,6 +175,13 @@ export default async function messages(io: Server) {
     socket.on(
       'ice-candidates:create',
       videoChatConnectionController.createdIceCandidate
+    );
+    // random query
+    socket.on('private-chat-random-queue:add-user', () =>
+      randomChatQueueManager.addUserQueryRandomChat(user.id, videoIO)
+    );
+    socket.on('private-chat-random-queue:remove-user', () =>
+      randomChatQueueManager.removeUserQueryRandomChat(user.id)
     );
   });
 }
