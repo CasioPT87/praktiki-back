@@ -7,6 +7,7 @@ const accept =
   (videoIO: Namespace) =>
   ({ privateChatId }: { privateChatId: string }) => {
     try {
+      console.log('accept');
       const privateChatRequest =
         globalPrivateChatsManager.acceptRequest(privateChatId);
       if (!privateChatRequest) return;
@@ -46,6 +47,7 @@ export const createdOffer = ({
   offer: RTCSessionDescriptionInit;
   privateChatId: string;
 }) => {
+  console.log('create offer');
   const privateChatRequest = globalPrivateChatsManager.getByIdAndState({
     id: privateChatId,
     state: Connection.onGoing,
@@ -66,6 +68,7 @@ export const answerOffer = ({
   offerAnswer: RTCSessionDescriptionInit;
   privateChatId: string;
 }) => {
+  console.log('answer offer');
   const privateChatRequest = globalPrivateChatsManager.getByIdAndState({
     id: privateChatId,
     state: Connection.onGoing,

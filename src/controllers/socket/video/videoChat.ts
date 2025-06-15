@@ -24,6 +24,7 @@ export const create =
   (user: User) =>
   ({ targetUserId }: { targetUserId: User['id'] }) => {
     try {
+      console.log('create');
       globalPrivateChatsManager.addRequest({
         creatorUserId: user.id,
         targetUserId,

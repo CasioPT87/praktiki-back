@@ -49,7 +49,8 @@ class PrivateChatManager<T extends Connection> {
       }
       return socket;
     } else {
-      throw new Error('could not find user: ' + userId);
+      console.error('could not find user: ' + userId);
+      return null;
     }
   }
 

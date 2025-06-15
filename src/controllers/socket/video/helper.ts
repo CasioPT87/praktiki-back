@@ -15,6 +15,9 @@ export async function closeConnectionByUser({
   const existingUserManager = globalPrivateChatUsersManager.getUserByUserId(
     user.id
   );
+
+  if (!existingUserManager) return;
+
   // get users connections:
   const privateChats = globalPrivateChatsManager.getAllPrivateChatsForUserId({
     userId: user.id,

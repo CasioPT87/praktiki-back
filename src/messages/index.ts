@@ -96,7 +96,9 @@ export default async function messages(io: Server) {
         { locationChatId }: { locationChatId: LocationChat['id'] },
         callback
       ) => {
-        console.log('join');
+        // anadimos al usuario al globalLocationChatUsersManager, por si acaso se hubiese desconectado o algo
+        const userManager = new UserManager(user.id, socket.id);
+        globalLocationChatUsersManager.addUser(userManager);
         const result = await locationChatController.join(socket)({
           locationChatId,
         });
@@ -116,8 +118,12 @@ export default async function messages(io: Server) {
       locationChatController.getLocationChatRoomUsers(socket, textIO)
     );
     socket.on(
+      'location-chat:leave',
+      locationChatController.onDisconnecting(socket, user)
+    );
+    socket.on(
       'disconnecting',
-      locationChatController.onDisconnecting(socket, user, textIO)
+      locationChatController.onDisconnecting(socket, user)
     );
   });
 
@@ -139,25 +145,7 @@ export default async function messages(io: Server) {
       globalPrivateChatUsersManager.addUser(userManager);
     }
 
-    // heartbeat
-    let countdownToExtinction = setTimeout(() => {
-      videoChatHelper.closeConnectionByUser({
-        user,
-        reason: DisconnectionReason.uncontrolled,
-        videoIO,
-      });
-    }, 30_000);
-
-    socket.on('heartbeat', () => {
-      clearTimeout(countdownToExtinction);
-      countdownToExtinction = setTimeout(() => {
-        videoChatHelper.closeConnectionByUser({
-          user,
-          reason: DisconnectionReason.uncontrolled,
-          videoIO,
-        });
-      }, 30_000);
-    });
+    socket.on('heartbeat', () => {});
     //
 
     socket.once(
@@ -171,6 +159,13 @@ export default async function messages(io: Server) {
 
     socket.on('private-chat:create', videoChatController.create(user));
     socket.on('private-chat:end', videoChatController.end(user, videoIO));
+    socket.on('private-chat:leave', () => {
+      videoChatHelper.closeConnectionByUser({
+        user,
+        reason: DisconnectionReason.uncontrolled,
+        videoIO,
+      });
+    });
     socket.on(
       'private-chat-message:create',
       videoChatController.createMessage(videoIO)
