@@ -7,15 +7,13 @@ type UserRandomQueue = {
   userId: User['id'];
   fluent: Language['id'];
   practice: Language['id'];
-  channel: string;
 };
 
 class RandomQueueChatManager {
   queryRandomChat: Array<UserRandomQueue> = [];
 
   addUserQueryRandomChat =
-    (userId: User['id'], videoIO: Namespace) =>
-    async ({ uuid }: { uuid: string }) => {
+    (userId: User['id'], videoIO: Namespace) => async () => {
       if (!this.checkUserIsElegible(userId)) {
         console.warn('user not eligible, cannot be added to random queue');
         return;
@@ -31,7 +29,6 @@ class RandomQueueChatManager {
           userId,
           fluent: user.fluent_language,
           practice: user.practice_language,
-          channel: uuid,
         },
       ];
       // each time a user joins, we try to find a match
@@ -76,13 +73,8 @@ class RandomQueueChatManager {
   }
 
   findAndSendQueryRandomChatMatches = (videoIO: Namespace) => {
-    const tuples: Array<
-      [
-        { userId: User['id']; channel: string },
-        { userId: User['id']; channel: string },
-      ]
-    > = [];
-    this.queryRandomChat.forEach(({ userId, fluent, practice, channel }) => {
+    const tuples: Array<[{ userId: User['id'] }, { userId: User['id'] }]> = [];
+    this.queryRandomChat.forEach(({ userId, fluent, practice }) => {
       const match = this.queryRandomChat.find((each) => {
         return (
           each.userId !== userId &&
@@ -91,27 +83,32 @@ class RandomQueueChatManager {
         );
       });
       if (match) {
-        tuples.push([
-          { userId, channel },
-          { userId: match.userId, channel: match.channel },
-        ]);
+        tuples.push([{ userId }, { userId: match.userId }]);
         this.removeUserQueryRandomChat(userId);
         this.removeUserQueryRandomChat(match.userId);
       }
     });
     if (tuples.length > 0) {
       tuples.forEach(([userOne, userTwo]) => {
-        // we send the second user to the first user
+        const privateChatUserOne =
+          globalPrivateChatUsersManager.getUserByUserId(userOne.userId);
+        const userOneSocketId = privateChatUserOne?.socketId;
+        const privateChatUserTwo =
+          globalPrivateChatUsersManager.getUserByUserId(userTwo.userId);
+        const userTwoSocketId = privateChatUserTwo?.socketId;
+
+        if (!userOneSocketId || !userTwoSocketId) return;
+
         videoIO
-          .to(userOne.channel)
+          .to(userOneSocketId)
           .emit('private-chat-random-queue:user-match', {
-            user: userTwo.userId,
+            userId: userTwo.userId,
           });
         // and the other way around, so they can connect
         videoIO
-          .to(userTwo.channel)
+          .to(userTwoSocketId)
           .emit('private-chat-random-queue:user-match', {
-            user: userOne.userId,
+            userId: userOne.userId,
           });
       });
     }

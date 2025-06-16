@@ -177,9 +177,9 @@ export default async function messages(io: Server) {
       videoChatConnectionController.createdIceCandidate
     );
     // random query
-    socket.on('private-chat-random-queue:add-user', () =>
-      randomChatQueueManager.addUserQueryRandomChat(user.id, videoIO)
-    );
+    socket.on('private-chat-random-queue:add-user', () => {
+      randomChatQueueManager.addUserQueryRandomChat(user.id, videoIO)();
+    });
     socket.on('private-chat-random-queue:remove-user', () =>
       randomChatQueueManager.removeUserQueryRandomChat(user.id)
     );
